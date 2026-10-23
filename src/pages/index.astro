@@ -62,10 +62,16 @@ const interest = (id: string) => {
   const i = interests.find((x) => x.id === id)!;
   return { type: 'interest', kind: 'Interest', title: i.name, text: i.note, href: '#explore' };
 };
+// short labels for the wood; the full title shows in the card
+const shortTitles: Record<string, string> = {
+  'from-blockchain-to-ai-agents': 'Blockchain to AI',
+  'agents-that-report-back': 'Agents report back',
+  'ran-is-not-worked': 'Status vs outcome',
+};
 const jengaItems = [
   edu('MBA, FinTech', 'MBA in Financial Technology, Pondicherry University (Central University), 2024 to 2026.'),
   edu('BCA', 'Bachelor of Computer Applications, Punjab Technical University, Chandigarh Group of Colleges, 2020 to 2023.'),
-  skill('Specs & requirements', 'BRDs, FRDs, FSDs and HFDs for 12+ modules at Hancod, with user stories and acceptance criteria written before design starts.'),
+  { ...skill('Specs & requirements', 'BRDs, FRDs, FSDs and HFDs for 12+ modules at Hancod, with user stories and acceptance criteria written before design starts.'), label: 'Requirements' },
   skill('UAT & defects', 'End-to-end testing at Hancod, from test scenarios to defect closure, across design, engineering and QA.'),
   skill('SQL & Power BI', 'Funnels, metrics and dashboards in SQL, Power BI and Tableau.'),
   skill('Python & ML', 'Pandas, scikit-learn and machine learning, from the IBM Data Science programme to the wallet and Falcon 9 studies.'),
@@ -87,7 +93,7 @@ const jengaItems = [
   proj('mock-interview'),
   { type: 'contact', kind: 'Résumé', title: 'Résumé', text: 'Three one-page versions: product, AI and business analysis, and business analysis.', href: '/resume/' },
   { type: 'contact', kind: 'Contact', title: 'Say hello', text: `Hiring, a project, or a question about FinChat? Write to ${site.email}.`, href: `mailto:${site.email}` },
-  ...writing.slice(0, 3).map((p) => ({ type: 'note', kind: 'Writing', title: p.data.title, text: p.data.excerpt, href: `/writing/${p.id}/` })),
+  ...writing.slice(0, 3).map((p) => ({ type: 'note', kind: 'Writing', title: p.data.title, label: shortTitles[p.id], text: p.data.excerpt, href: `/writing/${p.id}/` })),
 ];
 
 const tabs = [
