@@ -1,13 +1,18 @@
-// The cube section. The 3D scene (three.js, in cube-scene.js) is heavy, so it only loads once the section is
-// close to the screen; the rest of the page stays light. Without script or WebGL, the plain list inside the
+// The cube section. The 3D scene (three.js, in cube-scene.js) is heavy, so it loads quietly once the page
+// itself has loaded (or sooner, if the section comes near). Without script or WebGL, the plain list inside the
 // section shows instead.
 
 const root = document.getElementById('cube');
-if (root && 'IntersectionObserver' in window) {
-  const io = new IntersectionObserver(([e]) => {
-    if (!e.isIntersecting) return;
-    io.disconnect();
-    import('./cube-scene.js').then((m) => m.start(root)).catch(() => {});
-  }, { rootMargin: '800px 0px' });
+if (root) {
+  let started = false;
+  const load = () => {
+    if (started) return;
+    started = true;
+    import('./cube-scene.js').then((m) => m.start(root)).catch(() => root.classList.add('no-3d'));
+  };
+  const io = new IntersectionObserver(([e]) => { if (e.isIntersecting) { io.disconnect(); load(); } }, { rootMargin: '1200px 0px' });
   io.observe(root);
+  const idle = window.requestIdleCallback || ((f) => setTimeout(f, 1200));
+  if (document.readyState === 'complete') idle(load);
+  else addEventListener('load', () => idle(load), { once: true });
 }

@@ -142,8 +142,8 @@ const tabs = [
     </section>
     </div>
 
-    <!-- The cube: six sides of the work, built block by block, floating on the page (three.js, see cube-scene.js).
-         Its canvas covers the whole screen without taking clicks, so blocks can drift out over the rest of the page. -->
+    <!-- The cube: six sides of the work, built block by block, sitting on the page (three.js, see cube-scene.js).
+         Its canvas reaches a little past the stage, so the blocks have room to part. -->
     <section class="cube" id="cube" aria-labelledby="cube-heading">
       <div class="cube__head">
         <p class="cube__tag">// 03 &nbsp;The cube</p>
@@ -151,7 +151,9 @@ const tabs = [
         <p class="cube__intro">Six sides, one cube. Drag to turn it, tap a block to read it. Scroll and it comes apart. Scramble it if you like: it knows how to solve itself.</p>
       </div>
       <div class="cube__body">
-        <div class="cube__stage" aria-label="A puzzle cube of Shadin’s work. Drag to turn it, tap a block to read it."></div>
+        <div class="cube__stage" aria-label="A puzzle cube of Shadin’s work. Drag to turn it, tap a block to read it.">
+          <canvas class="cube__canvas" aria-hidden="true"></canvas>
+        </div>
         <aside class="cube__card" aria-live="polite">
           <p class="cube__kind">How it works</p>
           <h3 class="cube__title">Pick a block</h3>
@@ -164,7 +166,6 @@ const tabs = [
           <p class="cube__controls"><button type="button" class="cube__btn" data-act="scramble">Scramble</button><button type="button" class="cube__btn" data-act="solve" disabled>Solve</button></p>
         </aside>
       </div>
-      <canvas class="cube__canvas" aria-hidden="true"></canvas>
       <ul class="cube__list">
         {cubeFaces.map((f) => <li><strong>{f.name}:</strong> {f.items.map((it, i) => <>{i > 0 && ', '}{it.href ? <a href={it.href}>{it.title}</a> : it.title}</>)}</li>)}
       </ul>

@@ -1,6 +1,6 @@
-// The cube, after igloo.inc: a 3×3 puzzle cube of carved grey stone blocks, floating on the page itself.
-// It's drawn on a see-through canvas that covers the whole screen (and takes no clicks), pinned to the cube
-// section as you scroll, so when the blocks part they drift out over the rest of the page.
+// The cube, after igloo.inc: a 3×3 puzzle cube of carved blue-grey stone blocks with frosted edges, sitting
+// on the page itself. It's drawn on a see-through canvas that reaches a little past its stage, so it scrolls
+// with the page like anything else, and when the blocks part they stay around the cube's own centre.
 // When it first comes into view it builds itself: a glowing line sketch of each block appears, bottom layer
 // first, then each block materialises out of the light and rises into place. Light lives inside the cube;
 // it shows through the seams, and pours out when the blocks part as the cube scrolls away from the middle.
@@ -22,7 +22,8 @@ export async function start(root) {
   try {
     renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'high-performance' });
   } catch {
-    return; // no WebGL: the list stays
+    root.classList.add('no-3d'); // no WebGL: show the list instead
+    return;
   }
   renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 1.75));
   renderer.setClearColor(0x000000, 0);
@@ -59,11 +60,11 @@ export async function start(root) {
     return c;
   })();
 
-  // ---- the world: a camera looking at the page, and soft light from the top left ----
+  // ---- the world: a camera looking at the cube, and cold, soft light from the top left ----
   const world = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(30, 1, 0.1, 100);
-  world.add(new THREE.HemisphereLight(0xe6ebf5, 0x3c414e, 1.25));
-  const sun = new THREE.DirectionalLight(0xf6f8ff, 2.0);
+  world.add(new THREE.HemisphereLight(0xdde7f7, 0x343b4c, 1.3));
+  const sun = new THREE.DirectionalLight(0xeef3ff, 2.0);
   sun.position.set(-6, 9, 8);
   world.add(sun);
 
@@ -103,7 +104,30 @@ export async function start(root) {
     bottom: ([x, , z]) => [1 - z, x + 1],
   };
 
-  // one carved face: stone grain in the side's tint, worn edges, and the words cut into it
+  // the frost: every block's edges catch the light, bright and a little blue, like the igloo's
+  const STONE = '#9aa5ba';
+  const rim = (g, S, width, alpha) => {
+    for (const [x0, y0, x1, y1, x, y, w, h] of [[0, 0, 0, width, 0, 0, S, width], [0, S, 0, S - width, 0, S - width, S, width], [0, 0, width, 0, 0, 0, width, S], [S, 0, S - width, 0, S - width, 0, width, S]]) {
+      const l = g.createLinearGradient(x0, y0, x1, y1);
+      l.addColorStop(0, `rgba(236,243,255,${alpha})`);
+      l.addColorStop(1, 'rgba(236,243,255,0)');
+      g.fillStyle = l;
+      g.fillRect(x, y, w, h);
+    }
+  };
+  const frost = (() => { // the glow map: black, with the frosted rim
+    const c = document.createElement('canvas');
+    c.width = c.height = 256;
+    const g = c.getContext('2d');
+    g.fillStyle = '#000';
+    g.fillRect(0, 0, 256, 256);
+    rim(g, 256, 16, 0.9);
+    const t = new THREE.CanvasTexture(c);
+    t.colorSpace = THREE.SRGBColorSpace;
+    return t;
+  })();
+
+  // one carved face: blue-grey stone grain, frosted edges, and the words cut into it
   const wrapText = (g, text, width) => {
     const words = text.split(' '), lines = [];
     let line = '';
@@ -114,26 +138,20 @@ export async function start(root) {
     lines.push(line);
     return lines.slice(0, 3);
   };
-  const carve = (tint, label, number, centre, flip) => {
+  const carve = (label, number, centre, flip) => {
     const S = 256, c = document.createElement('canvas');
     c.width = c.height = S;
     const g = c.getContext('2d');
     g.drawImage(stone, Math.random() * (512 - S), Math.random() * (512 - S), S, S, 0, 0, S, S);
     g.globalCompositeOperation = 'multiply';
-    g.globalAlpha = 0.55; // a light tint, so the stone stays pale enough for the carving to read
-    g.fillStyle = tint;
+    g.fillStyle = STONE;
     g.fillRect(0, 0, S, S);
-    g.globalAlpha = 1;
     g.globalCompositeOperation = 'source-over';
-    const wear = g.createRadialGradient(S / 2, S / 2, S * 0.3, S / 2, S / 2, S * 0.75);
-    wear.addColorStop(0, 'rgba(0,0,0,0)');
-    wear.addColorStop(1, 'rgba(20,24,32,0.35)');
-    g.fillStyle = wear;
-    g.fillRect(0, 0, S, S);
-    const cut = (text, x, y) => { // a carved letter: a light lip below, the dark cut above it
-      g.fillStyle = 'rgba(255,255,255,0.32)';
+    rim(g, S, 22, 0.75);
+    const cut = (text, x, y) => { // a carved letter: a frosty lip below, the dark cut above it
+      g.fillStyle = 'rgba(230,238,252,0.45)';
       g.fillText(text, x + 1.5, y + 2);
-      g.fillStyle = 'rgba(14,17,24,0.92)';
+      g.fillStyle = 'rgba(16,20,30,0.88)';
       g.fillText(text, x, y);
     };
     g.textAlign = 'center';
@@ -158,9 +176,10 @@ export async function start(root) {
     return t;
   };
 
+  const FROST = 0.45; // how brightly the frosted edges glow
   const innerTex = new THREE.CanvasTexture(stone);
   innerTex.colorSpace = THREE.SRGBColorSpace;
-  const innerMat = new THREE.MeshStandardMaterial({ color: 0x9aa1ad, map: innerTex, roughness: 0.92, emissive: 0xd8ebff, emissiveIntensity: 0 });
+  const innerMat = new THREE.MeshStandardMaterial({ color: 0xb9c6dc, map: innerTex, roughness: 0.92, emissive: 0xe8f1ff, emissiveIntensity: 0 });
 
   const geo = new RoundedBoxGeometry(0.955, 0.955, 0.955, 3, 0.07);
   const edges = new THREE.EdgesGeometry(new THREE.BoxGeometry(0.985, 0.985, 0.985));
@@ -178,8 +197,8 @@ export async function start(root) {
       const item = centre ? null : f.items[slot];
       const label = centre ? f.name : item ? item.label || item.title : '';
       const number = item ? String(slot + 1).padStart(2, '0') : '';
-      const tex = carve(f.colour, label, number, centre, key === 'top');
-      const m = new THREE.MeshStandardMaterial({ map: tex, bumpMap: tex, bumpScale: 2.2, roughness: 0.9, emissive: 0xffffff, emissiveIntensity: 0 });
+      const tex = carve(label, number, centre, key === 'top');
+      const m = new THREE.MeshStandardMaterial({ map: tex, bumpMap: tex, bumpScale: 2.2, roughness: 0.88, emissive: 0xdfeaff, emissiveMap: frost, emissiveIntensity: FROST });
       m.userData = { face: key, slot, centre, item: !!item };
       own.push(m);
       return m;
@@ -189,7 +208,7 @@ export async function start(root) {
     const obj = new THREE.Group();
     obj.add(mesh, line);
     cubeGroup.add(obj);
-    const r = () => (Math.random() - 0.5) * 0.8;
+    const r = () => (Math.random() - 0.5) * 0.35;
     cubies.push({ obj, mesh, line, own, pos, q: new THREE.Quaternion(), tilt: new THREE.Euler(r(), r(), r()), order: 0 });
   }
   const meshes = cubies.map((c) => c.mesh);
@@ -197,7 +216,7 @@ export async function start(root) {
   cubies.slice().sort((a, b) => a.pos[1] - b.pos[1] || Math.random() - 0.5).forEach((c, i) => { c.order = i; });
 
   // ---- placing the blocks: logical spot × spacing (wider while the cube is pulled apart), any layer mid-turn ----
-  const GAP = 1.1;
+  const GAP = 0.45; // at most, the blocks part by under half a block: it opens in place
   let gap = 0, gapV = 0, aim = 0, turning = null;
   const tilted = new THREE.Quaternion(), turnQ = new THREE.Quaternion(), tiltE = new THREE.Euler();
   const place = () => {
@@ -306,7 +325,8 @@ export async function start(root) {
   // ---- pointing, dragging and tapping (on the stage; the canvas itself takes no clicks) ----
   const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
   const pick = (e) => {
-    ndc.set((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
+    const r = canvas.getBoundingClientRect();
+    ndc.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
     ray.setFromCamera(ndc, camera);
     const hit = ray.intersectObjects(meshes, false)[0];
     if (!hit) return null;
@@ -362,7 +382,7 @@ export async function start(root) {
       c.mesh.visible = solid > 0;
       c.mesh.scale.setScalar(Math.max(0.001, easeBack(solid)));
       c.mesh.position.y = -(1 - easeOut(solid)) * 0.6; // rising into place
-      for (const m of c.own) m.emissiveIntensity = (1 - solid) * 1.1; // out of the light
+      for (const m of c.own) m.emissiveIntensity = FROST + (1 - solid) * 1.1; // out of the light
     }
     if (t > SOLID + cubies.length * STEP + 1000) finishBuild();
   };
@@ -373,7 +393,7 @@ export async function start(root) {
       c.mesh.visible = true;
       c.mesh.scale.setScalar(1);
       c.mesh.position.y = 0;
-      for (const m of c.own) m.emissiveIntensity = 0;
+      for (const m of c.own) m.emissiveIntensity = FROST;
     }
     busy = false;
     controls();
@@ -382,36 +402,30 @@ export async function start(root) {
   if (reduced) finishBuild();
   else for (const c of cubies) c.mesh.visible = false;
 
-  // ---- where the cube is: pinned to the stage, sized to it; it parts as the stage scrolls from the middle ----
-  const anchor = new THREE.Vector3();
-  let unitPx = 1; // world units per screen pixel, where the cube is
-  const follow = () => {
+  // ---- it parts as the stage scrolls away from the middle of the screen, and comes together at the middle ----
+  const measure = () => {
     const r = stage.getBoundingClientRect();
-    const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
-    ndc.set((cx / innerWidth) * 2 - 1, -(cy / innerHeight) * 2 + 1);
-    ray.setFromCamera(ndc, camera);
-    const t = -ray.ray.origin.z / ray.ray.direction.z; // where the ray meets the plane through the origin
-    anchor.copy(ray.ray.origin).addScaledVector(ray.ray.direction, t);
-    const size = Math.min(r.height * 0.6, r.width * 0.78) * unitPx; // the cube's width on screen
-    cubeGroup.scale.setScalar(size / 3);
-    const d = Math.min(1, Math.abs(cy - innerHeight / 2) / (innerHeight / 2));
+    const d = Math.min(1, Math.abs(r.top + r.height / 2 - innerHeight / 2) / (innerHeight / 2));
     const apart = Math.max(0, Math.min(1, (d - 0.2) / 0.6));
     aim = reduced || !built ? 0 : GAP * apart * apart * (3 - 2 * apart);
     if (buildT0 === null && !built && d < 0.6) buildT0 = performance.now();
   };
 
-  // ---- size: the canvas is the whole screen ----
+  // ---- size: the cube sits in the middle of its canvas, sized to the stage ----
   const resize = () => {
-    const w = innerWidth, h = innerHeight;
+    const w = canvas.clientWidth, h = canvas.clientHeight;
+    if (!w || !h) return;
     renderer.setSize(w, h, false);
     camera.aspect = w / h;
     camera.position.set(0, 0, 16);
     camera.lookAt(0, 0, 0);
     camera.updateProjectionMatrix();
-    unitPx = (2 * 16 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2))) / h;
+    const unitPx = (2 * 16 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2))) / h; // world units per pixel
+    const size = Math.min(stage.clientHeight * 0.6, stage.clientWidth * 0.78) * unitPx; // the cube's width
+    cubeGroup.scale.setScalar(size / 3);
     wake();
   };
-  addEventListener('resize', resize);
+  new ResizeObserver(resize).observe(canvas);
 
   // ---- the frame loop, only while the cube's section is near the screen ----
   let raf = 0, near = true, last = performance.now();
@@ -419,7 +433,7 @@ export async function start(root) {
     raf = 0;
     const dt = Math.min(0.05, (now - last) / 1000);
     last = now;
-    follow();
+    measure();
     if (buildT0 !== null && !built) building(now);
     if (turning) {
       const k = Math.min(1, (now - turning.t0) / turning.ms);
@@ -435,16 +449,14 @@ export async function start(root) {
       cubeGroup.quaternion.slerp(aimQ, 0.09);
       if (cubeGroup.quaternion.angleTo(aimQ) < 0.002) aimQ = null;
     }
-    cubeGroup.position.copy(anchor);
-    if (!reduced) cubeGroup.position.y += Math.sin(now * 0.0009) * 0.05 * cubeGroup.scale.y; // a slow float
     // the light inside: always a little through the seams, flooding out as the blocks part
     const open = Math.max(0, Math.min(1, gap / GAP));
-    core.material.opacity = 0.75 + open * 0.25;
-    core.scale.setScalar(3.1 + open * 3.2);
+    core.material.opacity = 0.85 + open * 0.15;
+    core.scale.setScalar(3.1 + open * 1.6);
     lamp.intensity = (4 + open * 30) * cubeGroup.scale.x ** 2;
     lamp.distance = 9 * cubeGroup.scale.x;
-    innerMat.emissiveIntensity = open * 0.22;
-    if (built) for (const c of cubies) for (const m of c.own) m.emissiveIntensity = m === hovered ? 0.1 : 0;
+    innerMat.emissiveIntensity = 0.1 + open * 0.5;
+    if (built) for (const c of cubies) for (const m of c.own) m.emissiveIntensity = m === hovered ? FROST + 0.18 : FROST;
     renderer.render(world, camera);
     const moving = !built || turning || aimQ || Math.abs(aim - gap) > 1e-3 || Math.abs(gapV) > 1e-3;
     if (near && !document.hidden && (!reduced || moving)) raf = requestAnimationFrame(frame);
