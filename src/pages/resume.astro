@@ -49,7 +49,7 @@ const timeline = [
         {certifications.map((c) => (
           <li class="timeline__item">
             <h3>{c.name}</h3>
-            <p class="timeline__when">{c.issuer}{c.platform !== c.issuer && `, on ${c.platform}`}{c.year && `, ${c.year}`}</p>
+            <p class="timeline__when">{c.issuer}{c.platform !== c.issuer && `, on ${c.platform}`}{(c.date ?? c.year) && `, ${c.date ?? c.year}`}{c.courses && `, ${c.courses.length} courses`}</p>
             <p>{c.about}{c.url && <> <a class="link" href={c.url}>Verify</a></>}</p>
           </li>
         ))}

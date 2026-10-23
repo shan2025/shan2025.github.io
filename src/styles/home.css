@@ -138,6 +138,14 @@
 @media (hover: hover) and (pointer: fine) { .card--text:hover { background: var(--surface-2); } }
 @media (max-width: 900px) { .cards { grid-template-columns: 1fr; } .card__shot { height: auto; } }
 .card--cert { gap: 0; }
+.cert__courses { margin-top: 16px; }
+.cert__courses summary { cursor: pointer; font-weight: 600; font-size: 0.9375rem; list-style: none; display: inline-flex; align-items: center; gap: 8px; }
+.cert__courses summary::-webkit-details-marker { display: none; }
+.cert__courses summary::after { content: '+'; display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--surface-2); font-weight: 500; transition: transform var(--t-hover) ease; }
+.cert__courses[open] summary::after { transform: rotate(45deg); }
+.cert__courses ul { list-style: none; padding: 0; margin-top: 12px; display: grid; gap: 8px; font-size: 0.9375rem; }
+.cert__courses a { text-decoration-color: transparent; }
+@media (hover: hover) and (pointer: fine) { .cert__courses a:hover { text-decoration-color: currentColor; } }
 .card--cert .card__title { margin-top: 18px; }
 .cert__issuer { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 0.875rem; font-weight: 500; }
 .cert__badge { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 10px; background: var(--accent); color: var(--accent-ink); font-weight: 700; font-size: 0.9375rem; }
