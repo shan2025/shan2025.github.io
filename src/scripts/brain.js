@@ -1,6 +1,8 @@
-// The brain on the first screen: a slowly turning cloud of neurons drawn on a canvas, no library.
-// On arrival the neurons fly in from all around and settle into two hemispheres; each link forms once both
-// of its ends have arrived, with a signal sent across it, and afterwards it keeps making new links now and then.
+// The neurons on the first screen, drawn on a canvas, no library.
+// On arrival they fly in from all around and settle into a brain; each link forms once both of its ends have
+// arrived, with a signal sent across it. Then, like a brain rewiring itself, they let go of their links, drift
+// into new shapes (an idea, then a heart) and wire up again, before coming back to the brain. Once that's
+// played through, the page glides down to "Ask anything" (unless the visitor has already moved).
 // A handful of the neurons are real things from the site (projects, interests, writing) and carry their names.
 // When a question or an answer in the chat mentions one, that neuron fires and the signal spreads.
 // Other scripts trigger it with:  window.dispatchEvent(new CustomEvent('brain:fire', { detail: text }))
@@ -10,6 +12,7 @@
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
   const reduced = matchMedia('(prefers-reduced-motion: reduce)');
+  const mind = canvas.parentElement;
 
   // ---- the topics a conversation can light up: [id, label, pattern] ----
   const TOPICS = [
@@ -29,99 +32,184 @@
     ['hire', 'Say hello', /hire|hiring|role|job|contact|email|reach|open to|résumé|resume|cv/i],
   ];
 
-  // ---- a seeded random, so the brain has the same shape on every visit ----
+  // ---- a seeded random, so the shapes are the same on every visit ----
   let seed = 7;
   const rand = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
-
-  // forming: every neuron flies in from somewhere around the screen; the named ones arrive last
   const T0 = performance.now();
-  const FORMED = 3800; // ms after load by which everything has arrived
   const ease = (t) => 1 - (1 - t) ** 3;
 
-  let W = 0, H = 0, R = 0, dpr = 1;
-  let points = [], edges = [], neighbours = [], topics = [], pulses = [];
-  let extra = 0; // links made after forming
-
-  // Points inside two slightly separated hemispheres, denser near the surface, like a cortex.
-  const build = () => {
-    seed = 7;
-    const count = W < 640 ? 170 : 280;
-    points = [];
-    while (points.length < count) {
+  // ---- the shapes the neurons can take, each as one target point per neuron ----
+  // a brain: two slightly separated hemispheres, denser near the surface, like a cortex
+  const brainShape = (n) => {
+    const pts = [];
+    while (pts.length < n) {
       const x = rand() * 2 - 1, y = rand() * 2 - 1, z = rand() * 2 - 1;
       const d = x * x / 1.0 + y * y / 0.62 + z * z / 0.8;
       if (d > 1 || d < 0.35 || Math.abs(x) < 0.06) continue; // shell only, with the fissure down the middle
-      // where it flies in from: a random direction, well outside the brain
-      const u = rand() * 2 - 1, a = rand() * Math.PI * 2, far = 2.2 + rand() * 1.6, ring = Math.sqrt(1 - u * u);
-      points.push({
-        tx: x * 1.25, ty: y * 0.95 - 0.05, tz: z,
-        sx: ring * Math.cos(a) * far, sy: u * far, sz: ring * Math.sin(a) * far,
-        delay: rand() * 1500, dur: 1200 + rand() * 700,
-        x: 0, y: 0, z: 0, seen: 0, here: false, glow: 0, topic: null,
-      });
+      pts.push([x * 1.25, y * 0.95 - 0.05, z]);
     }
-    // connect each neuron to its nearest few
-    edges = [];
-    neighbours = points.map(() => []);
-    points.forEach((p, i) => {
-      const near = points
-        .map((q, j) => [j, (p.tx - q.tx) ** 2 + (p.ty - q.ty) ** 2 + (p.tz - q.tz) ** 2])
+    return pts;
+  };
+  // an idea: a light bulb, with its glass, a screw base and a filament
+  const bulbShape = (n) => {
+    const pts = [];
+    while (pts.length < n) {
+      const r = rand();
+      if (r < 0.68) {
+        const u = rand() * 2 - 1, a = rand() * Math.PI * 2, ring = Math.sqrt(1 - u * u);
+        if (u > 0.72) continue; // open at the bottom, where the neck joins
+        const k = 0.78 + rand() * 0.05;
+        pts.push([ring * Math.cos(a) * k, -0.32 + u * k, ring * Math.sin(a) * k]);
+      } else if (r < 0.9) {
+        const a = rand() * Math.PI * 2, band = Math.floor(rand() * 4);
+        pts.push([Math.cos(a) * (0.36 - band * 0.025), 0.36 + band * 0.12 + (rand() - 0.5) * 0.03, Math.sin(a) * (0.36 - band * 0.025)]);
+      } else {
+        const t = rand();
+        pts.push([(t - 0.5) * 0.5, -0.22 + Math.abs(Math.sin(t * Math.PI * 4)) * 0.18, (rand() - 0.5) * 0.05]);
+      }
+    }
+    return pts.map(([x, y, z]) => [x * 0.9, y * 0.9, z * 0.9]);
+  };
+  // something cared about: a heart, its outline denser than its middle
+  const heartShape = (n) => {
+    const pts = [];
+    while (pts.length < n) {
+      const t = rand() * Math.PI * 2, s = rand() < 0.6 ? 1 : Math.sqrt(rand());
+      const x = 16 * Math.sin(t) ** 3 / 17;
+      const y = -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t)) / 17;
+      pts.push([x * s * 1.1, (y * s - 0.15) * 1.1, (rand() - 0.5) * 0.3 * (1.2 - s)]);
+    }
+    return pts;
+  };
+  // the links of a shape: each neuron to its nearest few
+  const wire = (pts, maxD2) => {
+    const edges = [], neighbours = pts.map(() => []);
+    pts.forEach((p, i) => {
+      const near = pts
+        .map((q, j) => [j, (p[0] - q[0]) ** 2 + (p[1] - q[1]) ** 2 + (p[2] - q[2]) ** 2])
         .filter(([j]) => j !== i)
         .sort((a, b) => a[1] - b[1])
         .slice(0, 3);
       for (const [j, d2] of near) {
-        if (d2 > 0.16) continue;
-        if (!neighbours[i].includes(j)) { neighbours[i].push(j); neighbours[j].push(i); edges.push({ i, j, born: null }); }
+        if (d2 > maxD2 || neighbours[i].includes(j)) continue;
+        neighbours[i].push(j); neighbours[j].push(i); edges.push([i, j]);
       }
     });
+    return { edges, neighbours };
+  };
+
+  let W = 0, H = 0, R = 0, dpr = 1;
+  let points = [], shapes = [], links = [], neighbours = [], topics = [], pulses = [];
+  let shape = 0, settled = false, extra = 0;
+  let angle = 0.6, tilt = -0.18, targetX = 0, targetY = 0, lookX = 0, lookY = 0;
+
+  const build = () => {
+    seed = 7;
+    const n = W < 640 ? 170 : 280;
+    const brain = brainShape(n);
+    shapes = [
+      { pts: brain, facing: false, ...wire(brain, 0.16) }, // turns slowly in space
+      { pts: bulbShape(n), facing: true }, // these two always face you
+      { pts: heartShape(n), facing: true },
+    ];
+    for (const s of shapes.slice(1)) Object.assign(s, wire(s.pts, 0.08));
+    // every neuron starts somewhere well outside, and flies in
+    points = brain.map(() => {
+      const u = rand() * 2 - 1, a = rand() * Math.PI * 2, far = 2.2 + rand() * 1.6, ring = Math.sqrt(1 - u * u);
+      const sx = ring * Math.cos(a) * far, sy = u * far, sz = ring * Math.sin(a) * far;
+      return { x: sx, y: sy, z: sz, sx, sy, sz, m0: reduced.matches ? -1e9 : T0, delay: rand() * 1500, dur: 1200 + rand() * 700, seen: 0, here: false, glow: 0, topic: null };
+    });
     // the named neurons: as far from each other as possible (so their names don't pile up), arriving after the rest
-    const picked = [points.reduce((best, q, i) => (q.tx > points[best].tx ? i : best), 0)];
+    const picked = [brain.reduce((best, q, i) => (q[0] > brain[best][0] ? i : best), 0)];
     while (picked.length < TOPICS.length) {
       let best = 0, bestD = -1;
-      points.forEach((q, i) => {
-        const d = Math.min(...picked.map((j) => (q.tx - points[j].tx) ** 2 + (q.ty - points[j].ty) ** 2 + (q.tz - points[j].tz) ** 2));
+      brain.forEach((q, i) => {
+        const d = Math.min(...picked.map((j) => (q[0] - brain[j][0]) ** 2 + (q[1] - brain[j][1]) ** 2 + (q[2] - brain[j][2]) ** 2));
         if (d > bestD) { bestD = d; best = i; }
       });
       picked.push(best);
     }
-    pulses = [];
     topics = TOPICS.map(([id, label, re], k) => {
       const i = picked[k];
       points[i].topic = id;
       points[i].delay = 1700 + k * 70;
       return { id, label, re, i };
     });
-    extra = 0;
+    shape = 0; extra = 0; pulses = [];
+    neighbours = shapes[0].neighbours.map((a) => a.slice());
+    links = shapes[0].edges.map(([i, j]) => ({ i, j, born: null, dying: null }));
     form(performance.now(), true);
   };
 
-  // move every neuron along its path in, and grow the links whose ends have both arrived
-  let formed = false;
+  // where neuron i is heading: its point in the current shape (turned to face you, for the shapes that do)
+  const target = (i) => {
+    const s = shapes[shape], q = s.pts[i];
+    if (!s.facing) return q;
+    const c = Math.cos(angle), n = Math.sin(angle);
+    return [q[0] * c - q[2] * n, q[1], q[0] * n + q[2] * c];
+  };
+
+  // move every neuron along its path, grow the links whose ends have both arrived, let go of the old ones
   const form = (now, quiet = false) => {
-    const t = now - T0;
-    if (reduced.matches || t > FORMED + 2000) {
-      if (!formed || quiet) {
-        for (const p of points) { p.x = p.tx; p.y = p.ty; p.z = p.tz; p.seen = 1; p.here = true; }
-        for (const e of edges) if (e.born === null) e.born = -1e9;
+    let all = true;
+    points.forEach((p, i) => {
+      const k = Math.max(0, Math.min(1, (now - p.m0 - p.delay) / p.dur));
+      const e = ease(k), [tx, ty, tz] = target(i);
+      p.x = p.sx + (tx - p.sx) * e; p.y = p.sy + (ty - p.sy) * e; p.z = p.sz + (tz - p.sz) * e;
+      p.seen = Math.max(p.seen, Math.min(1, k * 2));
+      if (k < 1) all = false;
+      else if (!p.here) {
+        p.here = true;
+        if (p.topic && shape === 0) p.glow = 1; // a named neuron lights up as it lands, and shows its name
       }
-      formed = true;
+    });
+    for (const l of links) {
+      if (l.born !== null || l.dying !== null || !points[l.i].here || !points[l.j].here) continue;
+      l.born = quiet || reduced.matches ? -1e9 : now;
+      if (!quiet && Math.random() < 0.3) pulses.push({ from: l.i, to: l.j, t0: now, dur: 380, hops: 0, power: 0.55 });
+    }
+    links = links.filter((l) => l.dying === null || now - l.dying < 500);
+    settled = all;
+  };
+
+  // neuroplasticity: drop the links, drift into shape k, wire up again
+  const morph = (k, now) => {
+    if (k === shape) return;
+    for (const l of links) if (l.dying === null) l.dying = now;
+    shape = k;
+    for (const p of points) {
+      p.sx = p.x; p.sy = p.y; p.sz = p.z;
+      p.m0 = now; p.delay = Math.random() * 500; p.dur = 900 + Math.random() * 500; p.here = false;
+    }
+    neighbours = shapes[k].neighbours.map((a) => a.slice());
+    links.push(...shapes[k].edges.map(([i, j]) => ({ i, j, born: null, dying: null })));
+    settled = false;
+  };
+
+  // the order it plays in, while the opening is on screen: brain → idea → heart → brain, then on to the chat
+  const ORDER = [1, 2, 0];
+  let step = 0, nextAt = 0, advanced = false, touched = false;
+  for (const type of ['wheel', 'touchstart', 'keydown', 'pointerdown']) addEventListener(type, () => { touched = true; }, { passive: true, once: true });
+  const plasticity = (now) => {
+    if (reduced.matches) return;
+    if (p > 0.2) { if (shape !== 0) morph(0, now); nextAt = 0; return; } // below the opening it stays a brain
+    if (!settled) return;
+    if (!nextAt) {
+      nextAt = now + 1600;
+      if (step === ORDER.length && !advanced) {
+        advanced = true;
+        setTimeout(() => {
+          const ask = document.getElementById('ask');
+          if (touched || scrollY >= 30 || !ask) return;
+          // where the chat sits once it has risen into place (it starts 80px low, see --p in home.css)
+          scrollTo({ top: scrollY + ask.getBoundingClientRect().top - (1 - p) * 80 - 12, behavior: 'smooth' });
+        }, 700);
+      }
       return;
     }
-    for (const p of points) {
-      const k = Math.max(0, Math.min(1, (t - p.delay) / p.dur));
-      const e = ease(k);
-      p.x = p.sx + (p.tx - p.sx) * e; p.y = p.sy + (p.ty - p.sy) * e; p.z = p.sz + (p.tz - p.sz) * e;
-      p.seen = Math.min(1, k * 2);
-      if (k >= 1 && !p.here) {
-        p.here = true;
-        if (p.topic) p.glow = 1; // a named neuron lights up as it lands, and shows its name
-      }
-    }
-    for (const e of edges) {
-      if (e.born !== null || !points[e.i].here || !points[e.j].here) continue;
-      e.born = now;
-      if (!quiet && Math.random() < 0.3) pulses.push({ from: e.i, to: e.j, t0: now, dur: 380, hops: 0, power: 0.55 });
-    }
+    if (now < nextAt) return;
+    morph(ORDER[step++ % ORDER.length], now);
+    nextAt = 0;
   };
 
   const colours = () => {
@@ -140,18 +228,18 @@
     build();
   };
 
-  // how far the page has scrolled from the opening towards the chat (0 → 1): the brain dims and its names fade
-  // and once the chat is scrolling away, the brain goes with it rather than sitting behind the cube
+  // how far the page has scrolled from the opening towards the chat (0 → 1). The page uses it (as --p) to
+  // fade the opening out and bring the chat and the glow in; the brain dims, and leaves with the chat.
   let p = 0;
-  const mind = canvas.parentElement;
   const scrolled = () => {
     p = Math.max(0, Math.min(1, scrollY / (innerHeight * 0.85)));
+    mind.parentElement.style.setProperty('--p', p.toFixed(3));
     const leaving = Math.max(0, Math.min(1, (mind.getBoundingClientRect().bottom - innerHeight * 0.35) / (innerHeight * 0.65)));
     canvas.style.opacity = String((1 - 0.3 * p) * leaving);
+    wake();
   };
 
-  // ---- turning, the pointer, and drawing ----
-  let angle = 0.6, tilt = -0.18, targetX = 0, targetY = 0, lookX = 0, lookY = 0;
+  // ---- drawing ----
   const project = (q) => {
     const ay = angle + lookX * 0.5, ax = tilt + lookY * 0.3;
     const cy = Math.cos(ay), sy = Math.sin(ay), cx = Math.cos(ax), sx = Math.sin(ax);
@@ -164,15 +252,17 @@
   const draw = (now) => {
     ctx.clearRect(0, 0, W, H);
     const P = points.map(project);
-    // synapses: each fades in from the moment it formed
+    // synapses: each grows from the moment it formed, and fades as it's let go
     ctx.lineWidth = 1;
-    for (const e of edges) {
-      if (e.born === null) continue;
-      const grow = Math.min(1, (now - e.born) / 600);
-      const a = P[e.i], b = P[e.j];
-      const lit = Math.max(points[e.i].glow, points[e.j].glow);
+    for (const l of links) {
+      if (l.born === null) continue;
+      const grow = Math.min(1, (now - l.born) / 600);
+      const fade = l.dying === null ? 1 : Math.max(0, 1 - (now - l.dying) / 500);
+      const a = P[l.i], b = P[l.j];
+      const lit = Math.max(points[l.i].glow, points[l.j].glow);
       const depth = (2 - (a.z + b.z) / 2) / 3;
-      ctx.strokeStyle = lit > 0.05 ? `rgba(${C.glow}, ${(0.18 + lit * 0.6) * grow})` : `rgba(255, 255, 255, ${(0.05 + depth * 0.07) * grow})`;
+      const alpha = (lit > 0.05 ? 0.18 + lit * 0.6 : 0.05 + depth * 0.07) * grow * fade;
+      ctx.strokeStyle = lit > 0.05 ? `rgba(${C.glow}, ${alpha})` : `rgba(255, 255, 255, ${alpha})`;
       ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(a.x + (b.x - a.x) * grow, a.y + (b.y - a.y) * grow); ctx.stroke();
     }
     // signals travelling along synapses
@@ -191,7 +281,7 @@
       const q = P[i], n = points[i];
       if (!n.seen) continue;
       const depth = Math.max(0, Math.min(1, (2 - q.z) / 3));
-      const r = (n.topic ? 2.6 : 1.4) * q.f + n.glow * 3;
+      const r = (n.topic && shape === 0 ? 2.6 : 1.4) * q.f + n.glow * 3;
       ctx.fillStyle = n.glow > 0.05 ? C.accent : `rgba(255, 255, 255, ${0.25 + depth * 0.45})`;
       ctx.globalAlpha = (n.glow > 0.05 ? 0.5 + n.glow * 0.5 : 1) * n.seen;
       ctx.beginPath(); ctx.arc(q.x, q.y, r, 0, Math.PI * 2); ctx.fill();
@@ -202,7 +292,8 @@
       ctx.globalAlpha = 1;
       n.glow *= 0.965;
     }
-    // names: every named neuron shows its name on the opening screen; further down, only the ones firing
+    // names: in the brain, every named neuron shows its name on the opening screen; further down, only the ones firing
+    if (shape !== 0) return;
     ctx.font = `600 ${W < 640 ? 10.5 : 13}px Switzer, system-ui, sans-serif`;
     ctx.textAlign = 'center';
     for (const t of topics) {
@@ -242,37 +333,38 @@
     const dt = Math.min(64, now - last); last = now;
     if (!reduced.matches) angle += dt * 0.00008;
     lookX += (targetX - lookX) * 0.05; lookY += (targetY - lookY) * 0.05;
+    plasticity(now);
     form(now);
     draw(now);
-    const busy = !formed || pulses.length || points.some((q) => q.glow > 0.05);
+    const busy = !settled || pulses.length || points.some((q) => q.glow > 0.05);
     if (visible && !document.hidden && (!reduced.matches || busy)) raf = requestAnimationFrame(loop);
   };
-  const wake = () => { if (!raf && visible && !document.hidden) { last = performance.now(); raf = requestAnimationFrame(loop); } };
+  function wake() { if (!raf && visible && !document.hidden) { last = performance.now(); raf = requestAnimationFrame(loop); } }
 
   // a quiet heartbeat: now and then a random neuron fires on its own
   setInterval(() => {
-    if (!formed || !visible || document.hidden || reduced.matches) return;
+    if (!settled || !visible || document.hidden || reduced.matches) return;
     const i = Math.floor(Math.random() * points.length);
     points[i].glow = 0.7;
     spread(i, 1, 0.5, performance.now());
   }, 900);
 
-  // and it keeps learning: every so often two nearby neurons that weren't linked make a new link
+  // and while it's a brain it keeps learning: now and then two nearby neurons that weren't linked make a link
   setInterval(() => {
-    if (!formed || !visible || document.hidden || reduced.matches || extra >= 90) return;
-    const i = Math.floor(Math.random() * points.length), a = points[i];
+    if (shape !== 0 || !settled || !visible || document.hidden || reduced.matches || extra >= 90) return;
+    const brain = shapes[0].pts, i = Math.floor(Math.random() * points.length), a = brain[i];
     let best = -1, bestD = 0.3;
-    points.forEach((b, j) => {
+    brain.forEach((b, j) => {
       if (j === i || neighbours[i].includes(j)) return;
-      const d2 = (a.tx - b.tx) ** 2 + (a.ty - b.ty) ** 2 + (a.tz - b.tz) ** 2;
+      const d2 = (a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2 + (a[2] - b[2]) ** 2;
       if (d2 < bestD) { bestD = d2; best = j; }
     });
     if (best < 0) return;
     const now = performance.now();
     neighbours[i].push(best); neighbours[best].push(i);
-    edges.push({ i, j: best, born: now });
+    links.push({ i, j: best, born: now, dying: null });
     extra++;
-    a.glow = 0.9;
+    points[i].glow = 0.9;
     pulses.push({ from: i, to: best, t0: now, dur: 600, hops: 1, power: 0.8 });
     wake();
   }, 1600);
@@ -288,8 +380,8 @@
   document.addEventListener('visibilitychange', wake);
   new ResizeObserver(() => { size(); C = colours(); if (reduced.matches) draw(performance.now()); wake(); }).observe(canvas);
 
-  scrolled();
   size();
+  scrolled();
   if (reduced.matches) draw(performance.now());
   wake();
 })();

@@ -22,8 +22,15 @@
 /* the brain is pinned behind the first screen and "Ask anything", and never takes a click.
    brain.js dims it as you scroll from the opening down to the chat. */
 .mind { position: relative; }
-.brain { position: sticky; z-index: 0; top: 0; display: block; width: 100%; height: 100svh; margin-bottom: -100svh; pointer-events: none; }
+.hero { --p: 1; }
+.js .hero { --p: 0; } /* brain.js keeps --p at how far you've scrolled from the opening to the chat, 0 → 1 */
+.brain { position: sticky; z-index: 0; top: 0; display: block; width: 100%; height: 100svh; margin-bottom: -100svh; pointer-events: none; transform: scale(calc(1 - var(--p) * 0.1)); }
 .ask { position: relative; z-index: 1; }
+
+/* the hand-off: as you scroll, the opening fades up and away while the chat and its glow rise into place */
+.opening { opacity: clamp(0, calc(1 - var(--p) * 1.8), 1); transform: translateY(calc(var(--p) * -48px)); }
+.ask { opacity: clamp(0, calc(var(--p) * 1.6 - 0.2), 1); transform: translateY(calc((1 - var(--p)) * 80px)); }
+.glow { opacity: clamp(0, calc(var(--p) * 1.3), 1); }
 .panel { z-index: 1; }
 
 /* ---------- The opening: the brain, a line, and a way down ---------- */
@@ -172,7 +179,9 @@
 .cb__plane { position: absolute; inset: -0.5px; background: var(--dark); border-radius: calc(var(--s) * 0.03); }
 .cb__sticker {
   position: absolute; inset: 6%; display: grid; place-items: center; padding: 4px; text-align: center;
-  border-radius: calc(var(--s) * 0.09); background: var(--c); color: var(--ci);
+  border-radius: calc(var(--s) * 0.09); color: var(--ci);
+  /* flat poster colour with a hand-drawn motif tucked in the corner (cube.js sets --m) */
+  background: var(--m, none) no-repeat right -16% bottom -16% / 62%, var(--c);
   font-size: calc(var(--s) * 0.13); font-weight: 700; line-height: 1.1; letter-spacing: -0.01em;
   overflow: hidden; cursor: pointer;
   /* a little gloss, like a real sticker catching the light */
@@ -180,7 +189,8 @@
   transition: filter var(--t-hover) ease;
 }
 .cb__sticker.is-centre { font-size: calc(var(--s) * 0.15); font-weight: 800; text-transform: uppercase; letter-spacing: 0.02em; }
-.cb__sticker.is-plain { cursor: default; }
+.cb__sticker.is-plain { cursor: default; background: var(--m, none) no-repeat center / 78%, var(--c); }
+.cb__sticker.is-centre { background: var(--m, none) no-repeat center / 104%, var(--c); }
 @media (hover: hover) and (pointer: fine) { .cb__sticker:not(.is-plain):hover { filter: brightness(1.12); } }
 
 .cube__card { padding: clamp(22px, 2.6vw, 34px); border-radius: var(--radius); background: color-mix(in srgb, var(--bg) 82%, transparent); border: 1px solid var(--edge); display: grid; gap: 12px; align-content: start; justify-items: start; }

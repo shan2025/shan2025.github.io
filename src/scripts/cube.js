@@ -53,6 +53,25 @@
   const quarter = (axis, dir) => ROT[axis](0, dir); // a 90° turn, in whole numbers
   const matrix3d = (R) => `matrix3d(${R[0][0]},${R[1][0]},${R[2][0]},0,${R[0][1]},${R[1][1]},${R[2][1]},0,${R[0][2]},${R[1][2]},${R[2][2]},0,0,0,0,1)`;
 
+  // ---- the hand-drawn motifs on the stickers, as little SVGs: c is the motif's colour, bg the sticker's ----
+  const burst = (c) => {
+    const pts = Array.from({ length: 24 }, (_, i) => {
+      const r = i % 2 ? 20 : 46, a = (i / 24) * Math.PI * 2;
+      return `${(50 + Math.cos(a) * r).toFixed(1)},${(50 + Math.sin(a) * r).toFixed(1)}`;
+    });
+    return `<polygon points="${pts.join(' ')}" fill="${c}"/>`;
+  };
+  const MOTIFS = {
+    leaf: (c, bg) => `<path d="M16 84C16 44 44 16 86 14c2 42-26 70-70 70z" fill="${c}"/><path d="M22 78L78 22M40 60l-1-20M54 46l-1-18M40 60h20M54 46h18" stroke="${bg}" stroke-width="4" fill="none" stroke-linecap="round"/>`,
+    burst: (c) => burst(c),
+    flower: (c, bg) => `<g fill="${c}"><circle cx="50" cy="27" r="17"/><circle cx="72" cy="43" r="17"/><circle cx="64" cy="69" r="17"/><circle cx="36" cy="69" r="17"/><circle cx="28" cy="43" r="17"/></g><circle cx="50" cy="50" r="11" fill="${bg === '#fff8ec' ? '#f7d374' : '#fff8ec'}"/>`,
+    cloud: (c) => `<path d="M20 74a15 15 0 0 1 3-30 21 21 0 0 1 40-8 17 17 0 0 1 16 38z" fill="${c}"/>`,
+    heart: (c) => `<path d="M50 84C20 62 10 46 17 31c7-14 26-13 33 1 7-14 26-15 33-1 7 15-3 31-33 53z" fill="${c}"/>`,
+    sparkle: (c) => `<path d="M50 8C54 40 60 46 92 50 60 54 54 60 50 92 46 60 40 54 8 50 40 46 46 40 50 8z" fill="${c}"/>`,
+  };
+  const motif = (name, c, bg, turn, opacity) =>
+    `url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><g opacity="${opacity}" transform="rotate(${turn} 50 50)">${MOTIFS[name](c, bg)}</g></svg>`)}")`;
+
   // ---- build the 26 small cubes, with a sticker on every face that is on the outside ----
   let cubies = [];
   const build = () => {
@@ -79,6 +98,10 @@
           sticker.className = `cb__sticker${centre ? ' is-centre' : ''}${!centre && !item ? ' is-plain' : ''}`;
           sticker.style.setProperty('--c', f.colour);
           sticker.style.setProperty('--ci', f.ink);
+          // the face's own motif, with a sparkle on every third square; faint behind words, bold on empty squares
+          const name = !centre && slot % 3 === 2 ? 'sparkle' : f.motif;
+          const turn = ((index * 47 + key.length * 13) % 50) - 25;
+          sticker.style.setProperty('--m', motif(name, f.mark, f.colour, turn, centre ? 0.32 : item ? 0.6 : 1));
           sticker.textContent = centre ? f.name : item ? item.label || item.title : '';
           sticker.dataset.face = key;
           if (item) sticker.dataset.item = slot;
