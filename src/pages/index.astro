@@ -45,6 +45,51 @@ const links: [string, string, number?][] = [
 ];
 const mapData = JSON.stringify({ nodes, links: links.filter(([a, b]) => nodes.some((n) => n.id === a) && nodes.some((n) => n.id === b)) });
 
+// ---- The Jenga tower, bottom layer first: skills and certificates hold up the projects; writing sits on top ----
+const certLink = (name: string) => certifications.find((c) => c.name.startsWith(name))?.url;
+const skill = (title: string, text: string) => ({ type: 'skill', kind: 'Skill', title, text, href: '/resume/' });
+const cert = (title: string, short: string) => {
+  const c = certifications.find((x) => x.name.startsWith(title))!;
+  return { type: 'cert', kind: `Certificate, ${c.issuer}`, title: short, text: c.about, href: certLink(title) };
+};
+const proj = (id: string) => {
+  const w = work.find((x) => x.id === id)!;
+  return { type: 'project', kind: `Project, ${w.data.kind}`, title: w.data.name, text: w.data.worked, href: `/work/${id}/` };
+};
+const edu = (title: string, text: string) => ({ type: 'edu', kind: 'Education', title, text, href: '/resume/' });
+const act = (title: string, text: string) => ({ type: 'edu', kind: 'Leadership', title, text, href: '/resume/' });
+const interest = (id: string) => {
+  const i = interests.find((x) => x.id === id)!;
+  return { type: 'interest', kind: 'Interest', title: i.name, text: i.note, href: '#explore' };
+};
+const jengaItems = [
+  edu('MBA, FinTech', 'MBA in Financial Technology, Pondicherry University (Central University), 2024 to 2026.'),
+  edu('BCA', 'Bachelor of Computer Applications, Punjab Technical University, Chandigarh Group of Colleges, 2020 to 2023.'),
+  skill('Specs & requirements', 'BRDs, FRDs, FSDs and HFDs for 12+ modules at Hancod, with user stories and acceptance criteria written before design starts.'),
+  skill('UAT & defects', 'End-to-end testing at Hancod, from test scenarios to defect closure, across design, engineering and QA.'),
+  skill('SQL & Power BI', 'Funnels, metrics and dashboards in SQL, Power BI and Tableau.'),
+  skill('Python & ML', 'Pandas, scikit-learn and machine learning, from the IBM Data Science programme to the wallet and Falcon 9 studies.'),
+  skill('Growth', 'Owning user acquisition and conversion for a live service website as Growth Manager Trainee at Hancod.'),
+  act('TEDx Pondicherry', 'Speaker liaison at TEDx Pondicherry University 2025 for G. Karthikeyan, founder of Sristi: coordinating the speaker, the team and university admin.'),
+  act('BANQUEST 2024', 'Student coordinator for BANQUEST 2024, the department’s flagship industry–academia programme.'),
+  cert('IBM Data Science', 'IBM Data Science'),
+  cert('RAG for Generative', 'RAG Specialization'),
+  cert('Applied Data Science', 'Applied Data Science'),
+  cert('Introduction to Model Context', 'Intro to MCP'),
+  cert('AI Fluency', 'AI Fluency'),
+  interest('fintech'),
+  interest('agents'),
+  interest('evals'),
+  proj('hancod'),
+  proj('wallet-risk'),
+  proj('spacex-landing'),
+  proj('finchat'),
+  proj('mock-interview'),
+  { type: 'contact', kind: 'Résumé', title: 'Résumé', text: 'Three one-page versions: product, AI and business analysis, and business analysis.', href: '/resume/' },
+  { type: 'contact', kind: 'Contact', title: 'Say hello', text: `Hiring, a project, or a question about FinChat? Write to ${site.email}.`, href: `mailto:${site.email}` },
+  ...writing.slice(0, 3).map((p) => ({ type: 'note', kind: 'Writing', title: p.data.title, text: p.data.excerpt, href: `/writing/${p.id}/` })),
+];
+
 const tabs = [
   { id: 'projects', label: 'Projects' },
   { id: 'writing', label: 'Writing' },
@@ -57,6 +102,7 @@ const tabs = [
 <Base>
   <div class="hero">
     <div class="glow" aria-hidden="true"></div>
+    <canvas class="brain" id="brain" aria-hidden="true"></canvas>
     <Bar />
     <section class="ask" aria-labelledby="ask-title">
       <a class="badge" href="/resume/" data-load style="--d:0ms">
@@ -89,6 +135,30 @@ const tabs = [
         {suggestions.map((s) => <li><button type="button" class="chip">{s}</button></li>)}
       </ul>
       <p class="ask__note" data-load style="--d:300ms">Answers come from Shadin’s own work and résumé, and can be wrong. For anything important, <a class="link" href={`mailto:${site.email}`}>email him</a>.</p>
+    </section>
+
+    <!-- The Jenga tower: pull a block to read it; pull a load-bearing one and it falls -->
+    <section class="jenga" id="jenga" aria-labelledby="jenga-heading">
+      <div class="jenga__head">
+        <h2 id="jenga-heading" class="jenga__heading">It ran. Did it hold?</h2>
+        <p class="jenga__intro">Every block is something I built, learned or wrote. Pull one out to read it. Pull a load-bearing one and the tower falls.</p>
+      </div>
+      <div class="jenga__body">
+        <div class="jenga__stage" tabindex="-1" aria-label="Jenga tower of Shadin’s work. Drag to turn it.">
+          <div class="jenga__tower"></div>
+        </div>
+        <aside class="jenga__card" aria-live="polite">
+          <p class="jenga__kind">How to play</p>
+          <h3 class="jenga__title">Pick a block</h3>
+          <p class="jenga__text">Click a block to pull it out and read about it. Drag sideways to turn the tower. Skills and certificates at the bottom, projects in the middle, writing on top.</p>
+          <a class="button jenga__link" href="#jenga" hidden>Open</a>
+          <p class="jenga__foot"><span class="jenga__count"></span><button type="button" class="jenga__reset" hidden>Rebuild the tower</button></p>
+        </aside>
+      </div>
+      <ul class="jenga__list">
+        {jengaItems.map((it) => <li><a href={it.href}>{it.title}</a> <span>{it.kind}</span></li>)}
+      </ul>
+      <script type="application/json" id="jenga-data" set:html={JSON.stringify(jengaItems)} />
     </section>
 
     <!-- The rest of the site, in a panel rising from the bottom of the glow -->
@@ -199,6 +269,8 @@ const tabs = [
     </section>
   </div>
 
+  <script src="../scripts/brain.js"></script>
+  <script src="../scripts/jenga.js"></script>
   <script src="../scripts/tabs.js"></script>
   <script src="../scripts/chat.js"></script>
   <script src="../scripts/mindmap.js"></script>

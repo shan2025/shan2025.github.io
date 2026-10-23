@@ -16,6 +16,13 @@
 }
 @keyframes breathe { from { transform: translateX(-50%) scale(1); } to { transform: translateX(-50%) scale(1.06) translateY(-1.5%); } }
 
+/* the brain sits between the glow and the words, and never takes a click */
+.brain { position: absolute; z-index: 0; left: 0; top: 0; width: 100%; height: min(100svh, 980px); pointer-events: none; opacity: 0.85; }
+.ask { position: relative; z-index: 1; }
+.panel { z-index: 1; }
+@media (prefers-reduced-motion: no-preference) { .js .brain { opacity: 0; animation: fade-in 1600ms ease 400ms forwards; } }
+@keyframes fade-in { to { opacity: 0.85; } }
+
 /* ---------- Ask: the badge, the question and the chat box ---------- */
 .ask { width: min(860px, calc(100% - 2 * var(--margin))); margin: 0 auto; padding: clamp(40px, 9svh, 110px) 0 clamp(120px, 18svh, 220px); display: flex; flex-direction: column; align-items: center; text-align: center; }
 .badge {
@@ -79,6 +86,7 @@
   mask-image: linear-gradient(to bottom, transparent 0, #000 56px);
 }
 .chat::-webkit-scrollbar { display: none; }
+.chat[hidden] { display: none; }
 .msg.is-leaving { animation: msg-out 650ms var(--ease-out) forwards; pointer-events: none; }
 @keyframes msg-out { to { opacity: 0; transform: translateY(-18px) scale(0.98); filter: blur(4px); } }
 .ask.is-chatting .box { margin-top: 12px; }
@@ -106,6 +114,91 @@
 @keyframes msg-in { from { opacity: 0; transform: translateY(8px); } }
 @keyframes blink { 0%, 80%, 100% { opacity: 0.3; } 40% { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .msg { animation: none; } .typing span { animation: none; opacity: 0.7; } }
+
+/* ---------- The Jenga tower ---------- */
+.jenga {
+  position: relative; z-index: 1; width: min(1180px, calc(100% - 2 * var(--margin))); margin: 0 auto clamp(64px, 8vw, 120px);
+  --u: clamp(34px, 4.4vw, 56px);
+  --layers: 9;
+  --l: calc(var(--u) * 3);
+  --w: var(--u);
+  --h: calc(var(--u) * 0.6);
+}
+.jenga__head { text-align: center; max-width: 640px; margin: 0 auto; }
+.jenga__heading { font-size: var(--step-head); letter-spacing: -0.04em; }
+.jenga__intro { margin-top: 14px; font-size: var(--step-lead); line-height: 1.35; letter-spacing: -0.015em; color: color-mix(in srgb, var(--ink) 85%, transparent); }
+.jenga__body { margin-top: clamp(28px, 4vw, 48px); display: grid; grid-template-columns: 7fr 5fr; gap: 24px; align-items: center; }
+.jenga__list { list-style: none; padding: 0; margin-top: 24px; display: grid; gap: 8px; }
+.jenga__list span { color: var(--muted); font-size: var(--step-small); }
+.jenga.is-live .jenga__list { display: none; }
+.jenga:not(.is-live) .jenga__body { display: none; }
+
+.jenga__stage {
+  position: relative; height: calc(var(--h) * var(--layers) + var(--l) * 1.6); display: grid; place-items: center;
+  perspective: 1500px; perspective-origin: 50% 30%; touch-action: pan-y; cursor: grab; user-select: none; -webkit-user-select: none;
+  border-radius: var(--radius); background: color-mix(in srgb, var(--bg) 55%, transparent); border: 1px solid var(--edge); overflow: hidden;
+}
+.jenga__stage:active { cursor: grabbing; }
+.jenga__tower {
+  position: relative; width: 0; height: 0; transform-style: preserve-3d;
+  transform: translateY(calc(var(--h) * var(--layers) * 0.52)) rotateX(-22deg) rotateY(var(--ry, -32deg));
+  transition: transform 120ms linear;
+}
+
+.blk {
+  position: absolute; left: 0; top: 0; width: 0; height: 0; padding: 0; border: 0; background: none; cursor: pointer;
+  transform-style: preserve-3d;
+  --pos: translateY(calc(var(--layer) * var(--h) * -1)) rotateY(var(--turn)) translateZ(calc(var(--slot) * var(--w) * 1.02));
+  transform: var(--pos);
+  transition: transform 650ms var(--ease-out), opacity 350ms ease 450ms;
+}
+.blk:disabled { cursor: default; }
+.blk--skill { --base: #e4d2b2; }
+.blk--cert { --base: #efe3cb; }
+.blk--project { --base: color-mix(in srgb, var(--accent) 55%, #f1e4cc); }
+.blk--note { --base: #d6c19d; }
+.blk--edu { --base: #dcc7a3; }
+.blk--interest { --base: color-mix(in srgb, var(--accent) 25%, #ebdcc1); }
+.blk--contact { --base: color-mix(in srgb, var(--accent) 70%, #f4e9d6); }
+.blk__face {
+  position: absolute; left: 50%; top: 50%; display: grid; place-items: center; overflow: hidden;
+  padding: 0 8px; white-space: nowrap; text-overflow: ellipsis;
+  font-size: calc(var(--u) * 0.26); font-weight: 600; letter-spacing: -0.01em; color: #2a2116;
+  background: var(--base); outline: 1px solid rgba(60, 40, 20, 0.18); outline-offset: -1px;
+  transition: filter var(--t-hover) ease;
+}
+.blk__front, .blk__back { width: var(--l); height: var(--h); margin: calc(var(--h) / -2) 0 0 calc(var(--l) / -2); }
+.blk__front { transform: translateZ(calc(var(--w) / 2)); }
+.blk__back { transform: rotateY(180deg) translateZ(calc(var(--w) / 2)); }
+.blk__left, .blk__right { width: var(--w); height: var(--h); margin: calc(var(--h) / -2) 0 0 calc(var(--w) / -2); background: color-mix(in srgb, var(--base) 78%, #3a2a17); }
+.blk__right { transform: rotateY(90deg) translateZ(calc(var(--l) / 2)); }
+.blk__left { transform: rotateY(-90deg) translateZ(calc(var(--l) / 2)); }
+.blk__top, .blk__bottom { width: var(--l); height: var(--w); margin: calc(var(--w) / -2) 0 0 calc(var(--l) / -2); }
+.blk__top { transform: rotateX(90deg) translateZ(calc(var(--h) / 2)); background: color-mix(in srgb, var(--base) 88%, #fff); }
+.blk__bottom { transform: rotateX(-90deg) translateZ(calc(var(--h) / 2)); background: color-mix(in srgb, var(--base) 65%, #000); }
+@media (hover: hover) and (pointer: fine) { .blk:not(:disabled):hover .blk__face { filter: brightness(1.12); } }
+.blk:focus-visible .blk__face { filter: brightness(1.12); outline: 3px solid var(--ink); }
+
+/* pulled: slides out along its own length, then fades */
+.blk.is-out { transform: var(--pos) translateX(calc(var(--l) * 1.7)); opacity: 0; }
+/* fallen: everything above the weak layer tumbles to the floor */
+.blk.is-fallen {
+  transform: translateY(calc(var(--h) * 0.4)) translateX(calc(var(--fx) * var(--w))) translateZ(calc(var(--fz) * var(--w))) rotateY(calc(var(--turn) + var(--fr))) rotateX(var(--ft));
+  transition: transform 900ms cubic-bezier(0.5, 0, 0.75, 0.2) var(--delay, 0ms);
+}
+@media (prefers-reduced-motion: reduce) { .blk, .blk.is-fallen { transition: none; } }
+
+.jenga__card { padding: clamp(22px, 2.6vw, 34px); border-radius: var(--radius); background: color-mix(in srgb, var(--bg) 82%, transparent); border: 1px solid var(--edge); display: grid; gap: 12px; align-content: start; justify-items: start; }
+.jenga__link[hidden], .jenga__reset[hidden] { display: none; }
+.jenga__kind { color: var(--accent); font-size: var(--step-small); font-weight: 600; }
+.jenga__title { font-size: var(--step-lead); letter-spacing: -0.025em; line-height: 1.2; }
+.jenga__foot { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; color: var(--muted); font-size: var(--step-small); }
+.jenga__reset { font: inherit; font-weight: 600; color: var(--ink); background: var(--surface-2); border: 0; border-radius: 999px; padding: 8px 16px; cursor: pointer; }
+.jenga.is-fallen .jenga__card { border-color: color-mix(in srgb, var(--accent) 60%, transparent); }
+@media (max-width: 900px) {
+  .jenga { --u: clamp(28px, 8.5vw, 44px); }
+  .jenga__body { grid-template-columns: 1fr; }
+}
 
 /* ---------- The panel: the rest of the site in tabs ---------- */
 .panel {

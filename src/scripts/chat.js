@@ -138,6 +138,7 @@
     ask.classList.add('is-chatting');
     log.hidden = false;
     bubble('user', format(q));
+    window.dispatchEvent(new CustomEvent('brain:fire', { detail: q }));
     history.push({ role: 'user', content: q });
     input.value = '';
     grow();
@@ -163,6 +164,7 @@
       }
     }
     log.scrollTop = log.scrollHeight;
+    window.dispatchEvent(new CustomEvent('brain:fire', { detail: answer }));
     history.push({ role: 'assistant', content: answer });
     history = history.slice(-12);
     busy = false;
