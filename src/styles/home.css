@@ -133,18 +133,17 @@
 .cube__stage {
   position: relative; height: calc(var(--s) * 5.6); display: grid; place-items: center;
   perspective: 1200px; touch-action: pan-y; cursor: grab; user-select: none; -webkit-user-select: none;
-  border-radius: var(--radius); border: 1px solid var(--edge); overflow: hidden;
-  background: radial-gradient(ellipse 55% 50% at 50% 42%, rgba(255, 255, 255, 0.08), transparent 70%), color-mix(in srgb, var(--bg) 70%, #000);
 }
 .cube__stage:active { cursor: grabbing; }
-/* a soft shadow on the "floor" under the cube */
-.cube__stage::after { content: ''; position: absolute; left: 50%; bottom: 9%; width: calc(var(--s) * 3.6); height: calc(var(--s) * 0.6); transform: translateX(-50%); border-radius: 50%; background: radial-gradient(closest-side, rgba(0, 0, 0, 0.55), transparent); pointer-events: none; }
+/* no box: just a faint halo in the mood's colour behind the cube, and its shadow on the page */
+.cube__stage::before { content: ''; position: absolute; left: 50%; top: 46%; width: calc(var(--s) * 6); height: calc(var(--s) * 5); transform: translate(-50%, -50%); border-radius: 50%; background: radial-gradient(closest-side, rgba(var(--g2), 0.14), transparent); pointer-events: none; }
+.cube__stage::after { content: ''; position: absolute; left: 50%; bottom: 9%; width: calc(var(--s) * 3.6); height: calc(var(--s) * 0.6); transform: translateX(-50%); border-radius: 50%; background: radial-gradient(closest-side, rgba(0, 0, 0, 0.5), transparent); pointer-events: none; }
 .cube__orbit { position: relative; width: 0; height: 0; transform-style: preserve-3d; transition: transform 120ms linear; }
 .cube__puzzle { position: absolute; transform-style: preserve-3d; }
 
 /* one small cube: black plastic body, a coloured sticker on each outside face */
 .cb { position: absolute; left: calc(var(--s) / -2); top: calc(var(--s) / -2); width: var(--s); height: var(--s); transform-style: preserve-3d; }
-.cb__plane { position: absolute; inset: -0.5px; background: #111; border-radius: calc(var(--s) * 0.03); }
+.cb__plane { position: absolute; inset: -0.5px; background: var(--dark); border-radius: calc(var(--s) * 0.03); }
 .cb__sticker {
   position: absolute; inset: 6%; display: grid; place-items: center; padding: 4px; text-align: center;
   border-radius: calc(var(--s) * 0.09); background: var(--c); color: var(--ci);
