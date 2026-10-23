@@ -87,13 +87,17 @@
         el.append(plane);
       }
       puzzle.append(el);
-      const c = { el, pos, R: [[1, 0, 0], [0, 1, 0], [0, 0, 1]] };
+      const c = { el, pos, R: [[1, 0, 0], [0, 1, 0], [0, 0, 1]], tilt: [Math.random() * 60 - 30, Math.random() * 60 - 30] };
       place(c);
       cubies.push(c);
     }
   };
+  // gap: how far apart the small cubes have drifted (0 = a solid cube), see "coming apart" below
+  let gap = 0;
+  const GAP = 0.9;
   const place = (c, extra = '') => {
-    c.el.style.transform = `${extra} translate3d(calc(${c.pos[0]} * var(--s)), calc(${c.pos[1]} * var(--s)), calc(${c.pos[2]} * var(--s))) ${matrix3d(c.R)}`;
+    const k = 1 + gap, t = gap / GAP;
+    c.el.style.transform = `${extra} translate3d(calc(${c.pos[0] * k} * var(--s)), calc(${c.pos[1] * k} * var(--s)), calc(${c.pos[2] * k} * var(--s))) rotateX(${c.tilt[0] * t}deg) rotateY(${c.tilt[1] * t}deg) ${matrix3d(c.R)}`;
   };
 
   // ---- turning one layer: animate it, then bake the turn into each small cube ----
@@ -212,22 +216,48 @@
     else if (s.classList.contains('is-centre')) showFace(s.dataset.face);
   });
 
-  // ---- first look: scramble, pause, solve (once, when it scrolls into view) ----
+  // ---- coming apart: away from the middle of the screen the small cubes drift apart and tilt, and they
+  // click back together as the cube scrolls to the centre. A mouse over the cube parts them a little. ----
+  let aim = 0, hovering = false, raf = 0, introStarted = false;
+  const measure = () => {
+    const r = stage.getBoundingClientRect();
+    const d = Math.min(1, Math.abs(r.top + r.height / 2 - innerHeight / 2) / (innerHeight / 2));
+    const apart = Math.max(0, Math.min(1, (d - 0.15) / 0.65));
+    aim = reduced.matches ? 0 : GAP * apart * apart * (3 - 2 * apart) + (hovering ? 0.1 : 0);
+    if (d < 0.2 && !introStarted) intro();
+  };
+  const tick = () => {
+    raf = 0;
+    if (!busy) { // a layer mid-turn keeps its spacing until the turn lands
+      measure();
+      gap = Math.abs(aim - gap) < 0.002 ? aim : gap + (aim - gap) * 0.14;
+      for (const c of cubies) place(c);
+    }
+    if (busy || gap !== aim) raf = requestAnimationFrame(tick);
+  };
+  const nudge = () => { if (!raf) raf = requestAnimationFrame(tick); };
+  addEventListener('scroll', nudge, { passive: true });
+  addEventListener('resize', nudge);
+  stage.addEventListener('pointerenter', (e) => { if (e.pointerType === 'mouse') { hovering = true; nudge(); } });
+  stage.addEventListener('pointerleave', () => { hovering = false; nudge(); });
+
+  // ---- first look: scramble, pause, solve (once, when the cube reaches the middle of the screen) ----
+  const intro = async () => {
+    introStarted = true;
+    if (reduced.matches) return;
+    await new Promise((r) => setTimeout(r, 600));
+    if (busy || history.length) return; // the visitor got there first
+    await scramble(14, 180);
+    await new Promise((r) => setTimeout(r, 700));
+    await solve(170);
+    say('How it works', 'Pick a square', 'Each colour is one side of my work. Tap a square to read about it, or tap the side buttons below to see everything on that side.');
+  };
+
   build();
+  measure();
+  gap = aim; // no fly-in on page load; the movement belongs to scrolling
+  for (const c of cubies) place(c);
   view();
   root.classList.add('is-live');
   controls();
-  if (!reduced.matches && 'IntersectionObserver' in window) {
-    const io = new IntersectionObserver(async ([e]) => {
-      if (!e.isIntersecting) return;
-      io.disconnect();
-      await new Promise((r) => setTimeout(r, 500));
-      if (busy || history.length) return; // the visitor got there first
-      await scramble(14, 180);
-      await new Promise((r) => setTimeout(r, 700));
-      await solve(170);
-      say('How it works', 'Pick a square', 'Each colour is one side of my work. Tap a square to read about it, or tap the side buttons below to see everything on that side.');
-    }, { threshold: 0.45 });
-    io.observe(stage);
-  }
 })();

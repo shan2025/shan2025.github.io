@@ -118,7 +118,7 @@
 /* ---------- The cube ---------- */
 .cube {
   position: relative; z-index: 1; width: min(1180px, calc(100% - 2 * var(--margin))); margin: 0 auto clamp(64px, 8vw, 120px);
-  --s: clamp(62px, 7.4vw, 96px);
+  --s: clamp(70px, 9.4vw, 128px);
   --half: calc(var(--s) / 2);
   --picked: var(--accent);
 }
@@ -131,7 +131,7 @@
 .cube:not(.is-live) .cube__body { display: none; }
 
 .cube__stage {
-  position: relative; height: calc(var(--s) * 5.6); display: grid; place-items: center;
+  position: relative; height: calc(var(--s) * 6.2); display: grid; place-items: center;
   perspective: 1200px; touch-action: pan-y; cursor: grab; user-select: none; -webkit-user-select: none;
 }
 .cube__stage:active { cursor: grabbing; }
