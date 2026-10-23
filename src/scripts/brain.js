@@ -1,8 +1,7 @@
 // The neurons on the first screen, drawn on a canvas, no library.
 // On arrival they fly in from all around and settle into a brain; each link forms once both of its ends have
 // arrived, with a signal sent across it. Then, like a brain rewiring itself, they let go of their links, drift
-// into new shapes (an idea, then a heart) and wire up again, before coming back to the brain. Once that's
-// played through, the page glides down to "Ask anything" (unless the visitor has already moved).
+// into new shapes (an idea, then a heart) and wire up again, before coming back to the brain.
 // A handful of the neurons are real things from the site (projects, interests, writing) and carry their names.
 // When a question or an answer in the chat mentions one, that neuron fires and the signal spreads.
 // Other scripts trigger it with:  window.dispatchEvent(new CustomEvent('brain:fire', { detail: text }))
@@ -186,27 +185,14 @@
     settled = false;
   };
 
-  // the order it plays in, while the opening is on screen: brain → idea → heart → brain, then on to the chat
+  // the order it plays in, over and over while the opening is on screen: brain → idea → heart → brain
   const ORDER = [1, 2, 0];
-  let step = 0, nextAt = 0, advanced = false, touched = false;
-  for (const type of ['wheel', 'touchstart', 'keydown', 'pointerdown']) addEventListener(type, () => { touched = true; }, { passive: true, once: true });
+  let step = 0, nextAt = 0;
   const plasticity = (now) => {
     if (reduced.matches) return;
     if (p > 0.2) { if (shape !== 0) morph(0, now); nextAt = 0; return; } // below the opening it stays a brain
     if (!settled) return;
-    if (!nextAt) {
-      nextAt = now + 1600;
-      if (step === ORDER.length && !advanced) {
-        advanced = true;
-        setTimeout(() => {
-          const ask = document.getElementById('ask');
-          if (touched || scrollY >= 30 || !ask) return;
-          // where the chat sits once it has risen into place (it starts 80px low, see --p in home.css)
-          scrollTo({ top: scrollY + ask.getBoundingClientRect().top - (1 - p) * 80 - 12, behavior: 'smooth' });
-        }, 700);
-      }
-      return;
-    }
+    if (!nextAt) { nextAt = now + 1600; return; }
     if (now < nextAt) return;
     morph(ORDER[step++ % ORDER.length], now);
     nextAt = 0;
