@@ -157,7 +157,7 @@
 .cb__sticker.is-plain { cursor: default; }
 @media (hover: hover) and (pointer: fine) { .cb__sticker:not(.is-plain):hover { filter: brightness(1.12); } }
 
-.cube__card { padding: clamp(22px, 2.6vw, 34px); border-radius: var(--radius); background: color-mix(in srgb, var(--bg) 82%, transparent); border: 1px solid var(--edge); display: grid; gap: 12px; align-content: start; justify-items: start; }
+.cube__card { position: relative; z-index: 2; padding: clamp(22px, 2.6vw, 34px); border-radius: var(--radius); background: var(--bg); border: 1px solid var(--edge); display: grid; gap: 12px; align-content: start; justify-items: start; }
 .cube__kind { color: var(--picked); font-size: var(--step-small); font-weight: 600; }
 .cube__title { font-size: var(--step-lead); letter-spacing: -0.025em; line-height: 1.2; }
 .cube__items { list-style: none; padding: 0; display: grid; gap: 6px; }

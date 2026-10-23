@@ -94,7 +94,7 @@
   };
   // gap: how far apart the small cubes have drifted (0 = a solid cube), see "coming apart" below
   let gap = 0;
-  const GAP = 0.9;
+  const GAP = 0.7;
   const place = (c, extra = '') => {
     const k = 1 + gap, t = gap / GAP;
     c.el.style.transform = `${extra} translate3d(calc(${c.pos[0] * k} * var(--s)), calc(${c.pos[1] * k} * var(--s)), calc(${c.pos[2] * k} * var(--s))) rotateX(${c.tilt[0] * t}deg) rotateY(${c.tilt[1] * t}deg) ${matrix3d(c.R)}`;
@@ -216,15 +216,16 @@
     else if (s.classList.contains('is-centre')) showFace(s.dataset.face);
   });
 
-  // ---- coming apart: away from the middle of the screen the small cubes drift apart and tilt, and they
-  // click back together as the cube scrolls to the centre. A mouse over the cube parts them a little. ----
+  // ---- coming apart: while the cube is still rising up the screen its small cubes are drifting apart and
+  // tilted, and they click together as it reaches the middle. From there on it stays whole, so it never
+  // scatters over the card while someone is reading. A mouse over the cube parts them a little. ----
   let aim = 0, hovering = false, raf = 0, introStarted = false;
   const measure = () => {
     const r = stage.getBoundingClientRect();
-    const d = Math.min(1, Math.abs(r.top + r.height / 2 - innerHeight / 2) / (innerHeight / 2));
-    const apart = Math.max(0, Math.min(1, (d - 0.15) / 0.65));
+    const below = (r.top + r.height / 2 - innerHeight / 2) / (innerHeight / 2); // > 0 while under the middle
+    const apart = Math.max(0, Math.min(1, (below - 0.15) / 0.65));
     aim = reduced.matches ? 0 : GAP * apart * apart * (3 - 2 * apart) + (hovering ? 0.1 : 0);
-    if (d < 0.2 && !introStarted) intro();
+    if (Math.abs(below) < 0.2 && !introStarted) intro();
   };
   const tick = () => {
     raf = 0;
