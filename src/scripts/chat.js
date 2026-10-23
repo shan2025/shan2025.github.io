@@ -34,6 +34,15 @@
   ];
   const offline = (q) => {
     const s = q.toLowerCase();
+    if (/^\s*(hi|hii+|hello|hey|yo|hola|good (morning|afternoon|evening))\b/.test(s) && s.length < 30) {
+      return 'Hi! I’m the assistant on Shadin’s site. Ask me about his work, FinChat, his other projects, or the roles he’s looking for.';
+    }
+    if (/how are you|how r u|what'?s up|how('?s| is) it going/.test(s)) {
+      return 'Doing well, thanks for asking! I’m here to help with anything about Shadin: his projects, his experience, or how to reach him.';
+    }
+    if (/^\s*(thanks|thank you|thx|ty|cool|great|nice|ok(ay)?)\b/.test(s) && s.length < 30) {
+      return 'Happy to help! If you’d like to talk to Shadin directly, he’s at shadin2266@gmail.com.';
+    }
     let best = null, score = 0;
     for (const n of NOTES) {
       const hits = n.keys.filter((k) => s.includes(k)).length;
@@ -49,10 +58,22 @@
     .replace(/(https?:\/\/[^\s<)]+[^\s<).,])/g, '<a href="$1" target="_blank" rel="noopener">$1</a>')
     .replace(/(^|[\s(])(\/(?:resume|writing|work)\/[\w-/]*)/g, '$1<a href="$2">$2</a>')
     .replace(/([\w.+-]+@[\w-]+\.[\w.]+)/g, '<a href="mailto:$1">$1</a>');
+  // Paragraphs and bullet lists; a lead line followed by bullets ("He's also built:\n- …") becomes both.
+  const BULLET = /^\s*(?:[-*•]|\d+[.)])\s+/;
   const format = (text) => text.trim().split(/\n{2,}/).map((block) => {
-    const lines = block.split('\n');
-    if (lines.every((l) => /^\s*[-*•]\s+/.test(l))) return `<ul>${lines.map((l) => `<li>${inline(l.replace(/^\s*[-*•]\s+/, ''))}</li>`).join('')}</ul>`;
-    return `<p>${lines.map(inline).join('<br>')}</p>`;
+    const out = [];
+    let para = [], items = [];
+    const flush = () => {
+      if (para.length) out.push(`<p>${para.map(inline).join('<br>')}</p>`);
+      if (items.length) out.push(`<ul>${items.map((l) => `<li>${inline(l)}</li>`).join('')}</ul>`);
+      para = []; items = [];
+    };
+    for (const line of block.split('\n')) {
+      if (BULLET.test(line)) { if (para.length) { out.push(`<p>${para.map(inline).join('<br>')}</p>`); para = []; } items.push(line.replace(BULLET, '')); }
+      else { if (items.length) flush(); para.push(line); }
+    }
+    flush();
+    return out.join('');
   }).join('');
 
   const bubble = (who, html) => {
@@ -107,16 +128,27 @@
     input.value = '';
     grow();
     const bot = bubble('bot', '<span class="typing" aria-label="Thinking"><span></span><span></span><span></span></span>');
+    form.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
     let answer;
     try {
       answer = await askAI(bot);
-    } catch (err) {
-      answer = offline(q);
-      const note = String(err.message) === 'rate-limited'
-        ? 'That was a lot of questions in a short time, so this answer comes from the site’s notes.'
-        : 'Answered from the site’s notes while the AI is unavailable.';
-      bot.innerHTML = `${format(answer)}<span class="msg__note">${note}</span>`;
+    } catch (first) {
+      // one quiet retry: a cold server or a brief provider hiccup usually clears on the second try
+      console.warn('[chat] first attempt failed:', first.message);
+      try {
+        if (String(first.message) === 'rate-limited' || String(first.message) === 'not-configured') throw first;
+        await new Promise((r) => setTimeout(r, 700));
+        answer = await askAI(bot);
+      } catch (err) {
+        console.warn('[chat] using built-in notes:', err.message);
+        answer = offline(q);
+        const note = String(err.message) === 'rate-limited'
+          ? 'That was a lot of questions in a short time, so this answer comes from the site’s notes.'
+          : 'Answered from the site’s notes because the AI didn’t respond.';
+        bot.innerHTML = `${format(answer)}<span class="msg__note">${note}</span>`;
+      }
     }
+    log.scrollTop = log.scrollHeight;
     history.push({ role: 'assistant', content: answer });
     history = history.slice(-12);
     busy = false;
