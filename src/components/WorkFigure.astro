@@ -40,6 +40,33 @@ const { id } = Astro.props;
     <p class="ui__foot">Reported instead: recall and ROC-AUC on the high-risk class.</p>
   </figure>
 )}
+{id === 'spacex-landing' && (
+  <figure class="ui" data-ui>
+    <figcaption class="ui__cap">Landing prediction: validation vs. test accuracy</figcaption>
+    <table class="ui__table">
+      <thead><tr><th scope="col">Model</th><th scope="col">Validation</th><th scope="col">Test</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">Logistic regression</th><td>84.6%</td><td>83.3%</td></tr>
+        <tr><th scope="row">SVM</th><td>84.8%</td><td>83.3%</td></tr>
+        <tr><th scope="row">KNN</th><td>84.8%</td><td>83.3%</td></tr>
+        <tr class="ui__row--bad"><th scope="row">Decision tree</th><td>88.9%</td><td>66.7%</td></tr>
+      </tbody>
+    </table>
+    <p class="ui__foot">The best validation score gave the worst test result.</p>
+  </figure>
+)}
+{id === 'mock-interview' && (
+  <figure class="ui" data-ui>
+    <figcaption class="ui__cap">Practice round</figcaption>
+    <div class="ui__rounds"><span class="is-on">Technical</span><span>HR</span></div>
+    <div class="ui__question">
+      <p class="ui__qlabel">Example question types</p>
+      <p>Explain the difference between a process and a thread.</p>
+      <p>Tell me about a time you worked in a team.</p>
+    </div>
+    <p class="ui__foot">Question bank inspired by major tech companies’ interviews.</p>
+  </figure>
+)}
 {id === 'roster' && (
   <figure class="ui" data-ui>
     <figcaption class="ui__cap">FinChat’s agents</figcaption>

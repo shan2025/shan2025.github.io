@@ -136,6 +136,13 @@
 .ui__figures p { display: grid; gap: 6px; }
 .ui__big { font-size: var(--step-display); font-weight: 600; letter-spacing: -0.05em; line-height: 0.95; }
 .ui__big--bad { color: var(--accent); }
+.ui__table .ui__row--bad td:last-child { color: #f87171; }
+.ui__rounds { display: inline-flex; gap: 4px; padding: 4px; border-radius: 999px; background: var(--dark-2); }
+.ui__rounds span { padding: 6px 14px; border-radius: 999px; color: var(--on-dark-muted); }
+.ui__rounds span.is-on { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
+.ui__question { margin-top: 14px; display: grid; gap: 8px; }
+.ui__question p:not(.ui__qlabel) { background: var(--dark-2); padding: 12px 14px; border-radius: 10px; }
+.ui__qlabel { color: var(--on-dark-muted); }
 .ui__roster { list-style: none; padding: 0; display: grid; gap: 4px; }
 .ui__roster li { display: grid; grid-template-columns: 6.5rem 1fr; gap: 12px; padding: 11px 14px; background: var(--dark-2); border-radius: 10px; }
 .ui__agent { font-weight: 600; color: var(--accent); }
