@@ -1,8 +1,8 @@
 // The assistant's server side. Runs as a Vercel function so the AI key never reaches the browser.
-// Works with any OpenAI-compatible API; defaults to Groq's free tier. Set in Vercel (or a local .env):
-//   AI_API_KEY   your key (required; without it the page falls back to its built-in answers)
-//   AI_BASE_URL  default https://api.groq.com/openai/v1
-//   AI_MODELS    comma-separated, tried in order; default openai/gpt-oss-20b,llama-3.1-8b-instant
+// Uses DeepSeek by default; any OpenAI-compatible API works. Set in Vercel (or a local .env):
+//   AI_API_KEY   your DeepSeek key (required; without it the page falls back to its built-in answers)
+//   AI_BASE_URL  optional, default https://api.deepseek.com
+//   AI_MODELS    optional, comma-separated, tried in order; default deepseek-chat
 import type { APIRoute } from 'astro';
 import { knowledge } from '../../data/knowledge';
 import { site } from '../../data/site';
@@ -55,11 +55,11 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
   }
   if (!messages.length || messages.at(-1)!.role !== 'user') return Response.json({ error: 'bad-request' }, { status: 400 });
 
-  const base = (env('AI_BASE_URL') || 'https://api.groq.com/openai/v1').replace(/\/$/, '');
-  const models = (env('AI_MODELS') || 'openai/gpt-oss-20b,llama-3.1-8b-instant').split(',').map((s: string) => s.trim()).filter(Boolean);
+  const base = (env('AI_BASE_URL') || 'https://api.deepseek.com').replace(/\/$/, '');
+  const models = (env('AI_MODELS') || 'deepseek-chat').split(',').map((s: string) => s.trim()).filter(Boolean);
   const system = { role: 'system', content: instructions(await knowledge()) };
 
-  // Free allowances are per model, so a model that is out of quota is skipped, not waited for.
+  // With several models listed, one that fails or is out of quota is skipped, not waited for.
   for (const model of models) {
     let upstream: Response;
     try {

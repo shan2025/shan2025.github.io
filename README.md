@@ -20,16 +20,19 @@ add `?theme=ice` (or `amber`, `emerald`, `mono`) to any address to force one.
 ## The AI assistant
 
 The "Ask anything about Shadin" box sends questions to `src/pages/api/chat.ts`, a small server function that
-calls a free AI model and answers only from the facts in `src/data/knowledge.ts` and the writing files.
-Your API key stays on the server and is never sent to visitors' browsers.
+calls **DeepSeek** (`deepseek-chat`) and answers only from the facts in `src/data/knowledge.ts` and the writing
+files. Your API key stays on the server and is never sent to visitors' browsers.
 
-1. Get a free key at https://console.groq.com (the same kind FinChat uses).
+1. Get a key at https://platform.deepseek.com/api_keys and add a small amount of credit (DeepSeek is
+   pay-as-you-go and very cheap; the credit you add is the most the site can ever spend).
 2. For local testing, copy `.env.example` to `.env` and paste the key after `AI_API_KEY=`.
-3. On Vercel, add `AI_API_KEY` under **Settings → Environment Variables**, then redeploy.
+3. On Vercel, add `AI_API_KEY` under **Settings → Environment Variables**, then redeploy. That's the only
+   setting needed.
 
-Without a key, or when the free daily quota runs out, the box still answers from short built-in notes in
-`src/scripts/chat.js` and says so. To use another provider (Gemini, OpenRouter, ...), set `AI_BASE_URL` and
-`AI_MODELS` as shown in `.env.example`. Keep `knowledge.ts` up to date: the assistant knows only what's written there.
+Without a key, or if DeepSeek can't be reached or the credit runs out, the box still answers from short
+built-in notes in `src/scripts/chat.js` and says so. To use another OpenAI-compatible provider instead (for
+example Groq's free tier), set `AI_BASE_URL` and `AI_MODELS` as shown in `.env.example`. Keep `knowledge.ts` up
+to date: the assistant knows only what's written there.
 
 ## Run it on your computer
 
