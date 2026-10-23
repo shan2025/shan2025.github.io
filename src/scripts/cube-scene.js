@@ -1,5 +1,5 @@
-// The cube, after igloo.inc: a 3×3 puzzle cube of carved blue-grey stone blocks with frosted edges, sitting
-// on the page itself. It's drawn on a see-through canvas that reaches a little past its stage, so it scrolls
+// The cube: a 3×3 puzzle cube of snow-crusted ice blocks (pale blue ice showing through white snow), in a
+// light snowfall, sitting on the page itself. It's drawn on a see-through canvas that reaches a little past its stage, so it scrolls
 // with the page like anything else, and when the blocks part they stay around the cube's own centre.
 // When it first comes into view it builds itself: a glowing line sketch of each block appears, bottom layer
 // first, then each block materialises out of the light and rises into place. Light lives inside the cube;
@@ -32,7 +32,7 @@ export async function start(root) {
   renderer.toneMappingExposure = 1.1;
   const aniso = Math.min(8, renderer.capabilities.getMaxAnisotropy());
 
-  // ---- stone grain: value noise that tiles ----
+  // ---- snow and ice: value noise that tiles ----
   const hash = (x, y) => { const s = Math.sin(x * 127.1 + y * 311.7) * 43758.5453; return s - Math.floor(s); };
   const noise = (x, y, p) => {
     const xi = Math.floor(x), yi = Math.floor(y), xf = x - xi, yf = y - yi;
@@ -46,25 +46,45 @@ export async function start(root) {
     for (let o = 0; o < 4; o++) { f += amp * noise(x, y, p); x *= 2; y *= 2; p *= 2; amp *= 0.5; }
     return f;
   };
-  const stone = (() => {
-    const S = 512, cells = 12, c = document.createElement('canvas');
+  // the snow crust: bright, granular, faintly blue in its hollows
+  const snow = (() => {
+    const S = 512, cells = 40, c = document.createElement('canvas');
     c.width = c.height = S;
     const g = c.getContext('2d'), img = g.createImageData(S, S);
     for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) {
-      const n = fbm((x / S) * cells, (y / S) * cells, cells) * 0.85 + Math.random() * 0.18;
-      const i = (y * S + x) * 4;
-      img.data[i] = img.data[i + 1] = img.data[i + 2] = Math.round(120 + n * 135);
+      const n = fbm((x / S) * cells, (y / S) * cells, cells) * 0.7 + Math.random() * 0.3;
+      const v = 196 + n * 59, i = (y * S + x) * 4;
+      img.data[i] = Math.round(v - 6); img.data[i + 1] = Math.round(v - 2); img.data[i + 2] = Math.round(Math.min(255, v + 6));
       img.data[i + 3] = 255;
     }
     g.putImageData(img, 0, 0);
     return c;
   })();
+  // the ice showing through the snow in the middle of a face: blotchy pale blue, crusted over in specks.
+  // A few variants, so the faces don't all match.
+  const ices = Array.from({ length: 4 }, (_, k) => {
+    const S = 256, c = document.createElement('canvas');
+    c.width = c.height = S;
+    const g = c.getContext('2d'), img = g.createImageData(S, S);
+    for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) {
+      const dx = x / S - 0.5, dy = y / S - 0.5, d = Math.max(Math.abs(dx), Math.abs(dy)) * 2 * 0.6 + Math.hypot(dx, dy) * 0.55;
+      const n = fbm((x / S) * 5 + k * 7, (y / S) * 5 - k * 3, 1e9);
+      const fine = fbm((x / S) * 40, (y / S) * 40 + k * 11, 1e9);
+      let a = Math.max(0, Math.min(1, (0.78 - d - (n - 0.5) * 0.7) / 0.28)); // patch, with a ragged border
+      a *= fine > 0.62 ? 0.25 : 0.8 + fine * 0.3; // snow specks over the ice
+      const i = (y * S + x) * 4, deep = Math.max(0, Math.min(1, n * 1.4 - 0.2));
+      img.data[i] = Math.round(150 - deep * 60); img.data[i + 1] = Math.round(198 - deep * 40); img.data[i + 2] = Math.round(240 - deep * 10);
+      img.data[i + 3] = Math.round(a * 235);
+    }
+    g.putImageData(img, 0, 0);
+    return c;
+  });
 
   // ---- the world: a camera looking at the cube, and cold, soft light from the top left ----
   const world = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(30, 1, 0.1, 100);
-  world.add(new THREE.HemisphereLight(0xdde7f7, 0x343b4c, 1.3));
-  const sun = new THREE.DirectionalLight(0xeef3ff, 2.0);
+  world.add(new THREE.HemisphereLight(0xeef5ff, 0x52607a, 1.25));
+  const sun = new THREE.DirectionalLight(0xf3f8ff, 2.1);
   sun.position.set(-6, 9, 8);
   world.add(sun);
 
@@ -72,6 +92,28 @@ export async function start(root) {
   const HOME = new THREE.Quaternion().setFromEuler(new THREE.Euler(0.42, -0.62, 0));
   cubeGroup.quaternion.copy(HOME);
   world.add(cubeGroup);
+
+  // a light snowfall around the cube (in cube-sized units; resize scales it with the cube)
+  const flakes = (() => {
+    const n = innerWidth < 700 ? 160 : 320, p = new Float32Array(n * 3), speed = new Float32Array(n);
+    for (let i = 0; i < n; i++) {
+      p[i * 3] = (Math.random() - 0.5) * 9; p[i * 3 + 1] = (Math.random() - 0.5) * 7; p[i * 3 + 2] = (Math.random() - 0.5) * 6;
+      speed[i] = 0.25 + Math.random() * 0.5;
+    }
+    const geom = new THREE.BufferGeometry();
+    geom.setAttribute('position', new THREE.BufferAttribute(p, 3));
+    const dot = document.createElement('canvas');
+    dot.width = dot.height = 32;
+    const d = dot.getContext('2d'), r = d.createRadialGradient(16, 16, 0, 16, 16, 16);
+    r.addColorStop(0, 'rgba(255,255,255,1)');
+    r.addColorStop(1, 'rgba(255,255,255,0)');
+    d.fillStyle = r;
+    d.fillRect(0, 0, 32, 32);
+    const pts = new THREE.Points(geom, new THREE.PointsMaterial({ size: 0.06, map: new THREE.CanvasTexture(dot), transparent: true, depthWrite: false, opacity: 0.8 }));
+    pts.userData.speed = speed;
+    return pts;
+  })();
+  world.add(flakes);
 
   // the light inside: a glow you see through the seams, and a lamp that lights the blocks' inner faces
   const glowTex = (() => {
@@ -104,30 +146,7 @@ export async function start(root) {
     bottom: ([x, , z]) => [1 - z, x + 1],
   };
 
-  // the frost: every block's edges catch the light, bright and a little blue, like the igloo's
-  const STONE = '#9aa5ba';
-  const rim = (g, S, width, alpha) => {
-    for (const [x0, y0, x1, y1, x, y, w, h] of [[0, 0, 0, width, 0, 0, S, width], [0, S, 0, S - width, 0, S - width, S, width], [0, 0, width, 0, 0, 0, width, S], [S, 0, S - width, 0, S - width, 0, width, S]]) {
-      const l = g.createLinearGradient(x0, y0, x1, y1);
-      l.addColorStop(0, `rgba(236,243,255,${alpha})`);
-      l.addColorStop(1, 'rgba(236,243,255,0)');
-      g.fillStyle = l;
-      g.fillRect(x, y, w, h);
-    }
-  };
-  const frost = (() => { // the glow map: black, with the frosted rim
-    const c = document.createElement('canvas');
-    c.width = c.height = 256;
-    const g = c.getContext('2d');
-    g.fillStyle = '#000';
-    g.fillRect(0, 0, 256, 256);
-    rim(g, 256, 16, 0.9);
-    const t = new THREE.CanvasTexture(c);
-    t.colorSpace = THREE.SRGBColorSpace;
-    return t;
-  })();
-
-  // one carved face: blue-grey stone grain, frosted edges, and the words cut into it
+  // one face of a block: snow crust, the ice showing through in the middle, and the words cut into it
   const wrapText = (g, text, width) => {
     const words = text.split(' '), lines = [];
     let line = '';
@@ -142,16 +161,17 @@ export async function start(root) {
     const S = 256, c = document.createElement('canvas');
     c.width = c.height = S;
     const g = c.getContext('2d');
-    g.drawImage(stone, Math.random() * (512 - S), Math.random() * (512 - S), S, S, 0, 0, S, S);
-    g.globalCompositeOperation = 'multiply';
-    g.fillStyle = STONE;
-    g.fillRect(0, 0, S, S);
-    g.globalCompositeOperation = 'source-over';
-    rim(g, S, 22, 0.75);
-    const cut = (text, x, y) => { // a carved letter: a frosty lip below, the dark cut above it
-      g.fillStyle = 'rgba(230,238,252,0.45)';
+    g.drawImage(snow, Math.random() * (512 - S), Math.random() * (512 - S), S, S, 0, 0, S, S);
+    g.save(); // a random ice patch, turned and flipped
+    g.translate(S / 2, S / 2);
+    g.rotate(Math.floor(Math.random() * 4) * Math.PI / 2);
+    g.scale(Math.random() < 0.5 ? -1 : 1, 1);
+    g.drawImage(ices[Math.floor(Math.random() * ices.length)], -S / 2, -S / 2);
+    g.restore();
+    const cut = (text, x, y) => { // a letter cut into the ice: a bright lip below, the deep blue cut above it
+      g.fillStyle = 'rgba(255,255,255,0.7)';
       g.fillText(text, x + 1.5, y + 2);
-      g.fillStyle = 'rgba(16,20,30,0.88)';
+      g.fillStyle = 'rgba(22,52,88,0.85)';
       g.fillText(text, x, y);
     };
     g.textAlign = 'center';
@@ -176,12 +196,12 @@ export async function start(root) {
     return t;
   };
 
-  const FROST = 0.45; // how brightly the frosted edges glow
-  const innerTex = new THREE.CanvasTexture(stone);
+  const FROST = 0.06; // a faint cold glow on the snow
+  const innerTex = new THREE.CanvasTexture(ices[0]);
   innerTex.colorSpace = THREE.SRGBColorSpace;
-  const innerMat = new THREE.MeshStandardMaterial({ color: 0xb9c6dc, map: innerTex, roughness: 0.92, emissive: 0xe8f1ff, emissiveIntensity: 0 });
+  const innerMat = new THREE.MeshStandardMaterial({ color: 0xbfe0f7, map: innerTex, roughness: 0.6, emissive: 0xcfe8ff, emissiveIntensity: 0 });
 
-  const geo = new RoundedBoxGeometry(0.955, 0.955, 0.955, 3, 0.07);
+  const geo = new RoundedBoxGeometry(0.955, 0.955, 0.955, 5, 0.15); // soft, snow-rounded blocks
   const edges = new THREE.EdgesGeometry(new THREE.BoxGeometry(0.985, 0.985, 0.985));
   const cubies = [];
   for (let x = -1; x <= 1; x++) for (let y = -1; y <= 1; y++) for (let z = -1; z <= 1; z++) {
@@ -198,7 +218,7 @@ export async function start(root) {
       const label = centre ? f.name : item ? item.label || item.title : '';
       const number = item ? String(slot + 1).padStart(2, '0') : '';
       const tex = carve(label, number, centre, key === 'top');
-      const m = new THREE.MeshStandardMaterial({ map: tex, bumpMap: tex, bumpScale: 2.2, roughness: 0.88, emissive: 0xdfeaff, emissiveMap: frost, emissiveIntensity: FROST });
+      const m = new THREE.MeshStandardMaterial({ map: tex, bumpMap: tex, bumpScale: 3, roughness: 0.95, emissive: 0xdcecff, emissiveIntensity: FROST });
       m.userData = { face: key, slot, centre, item: !!item };
       own.push(m);
       return m;
@@ -433,6 +453,7 @@ export async function start(root) {
     const unitPx = (2 * 16 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2))) / h; // world units per pixel
     const size = Math.min(stage.clientHeight * 0.6, stage.clientWidth * 0.78) * unitPx; // the cube's width
     cubeGroup.scale.setScalar(size / 3);
+    flakes.scale.setScalar(size / 3);
     wake();
   };
   new ResizeObserver(resize).observe(canvas);
@@ -474,6 +495,16 @@ export async function start(root) {
     lamp.distance = 9 * cubeGroup.scale.x;
     innerMat.emissiveIntensity = 0.1 + open * 0.5;
     if (built) for (const c of cubies) for (const m of c.own) m.emissiveIntensity = m === hovered ? FROST + 0.18 : FROST;
+    if (!reduced) { // snow drifting down, and round again
+      const sp = flakes.userData.speed, fp = flakes.geometry.attributes.position;
+      for (let i = 0; i < sp.length; i++) {
+        let y = fp.getY(i) - sp[i] * dt;
+        if (y < -3.5) y += 7;
+        fp.setY(i, y);
+        fp.setX(i, fp.getX(i) + Math.sin(now * 0.0006 + i) * 0.08 * dt);
+      }
+      fp.needsUpdate = true;
+    }
     renderer.render(world, camera);
     const moving = !built || turning || aimQ || popping || Math.abs(aim - gap) > 1e-3 || Math.abs(gapV) > 1e-3;
     if (near && !document.hidden && (!reduced || moving)) raf = requestAnimationFrame(frame);
