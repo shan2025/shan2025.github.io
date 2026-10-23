@@ -95,9 +95,19 @@ const tabs = [
 <Base>
   <div class="hero">
     <div class="glow" aria-hidden="true"></div>
+    <!-- The mind: the brain forms on the first screen, then stays behind "Ask anything" as you scroll -->
+    <div class="mind">
     <canvas class="brain" id="brain" aria-hidden="true"></canvas>
     <Bar />
-    <section class="ask" aria-labelledby="ask-title">
+    <section class="opening" aria-label="Introduction">
+      <p class="opening__title">Ideas, connected.</p>
+      <p class="opening__sub">Each point is something I’ve built, studied or care about. Watch it wire itself up, then scroll down and ask it anything.</p>
+      <a class="opening__cue" href="#ask">
+        Ask me
+        <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v9M4.5 8.5 8 12l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </a>
+    </section>
+    <section class="ask" id="ask" aria-labelledby="ask-title">
       <a class="badge" href="/resume/" data-load style="--d:0ms">
         <span class="badge__dots" aria-hidden="true"><span></span><span></span><span></span></span>
         Open to product, BA and PM roles
@@ -129,6 +139,7 @@ const tabs = [
       </ul>
       <p class="ask__note" data-load style="--d:300ms">Answers come from Shadin’s own work and résumé, and can be wrong. For anything important, <a class="link" href={`mailto:${site.email}`}>email him</a>.</p>
     </section>
+    </div>
 
     <!-- The cube: six sides of the work; it scrambles, then solves itself -->
     <section class="cube" id="cube" aria-labelledby="cube-heading">

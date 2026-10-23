@@ -58,8 +58,8 @@
   --bg: #0b0f17; --ink: #eef4fb; --muted: #9aa6b6; --surface: #141b27; --surface-2: #1d2533; --edge: rgba(200, 230, 255, 0.1);
   --dark: #070a10; --dark-2: #111722; --on-dark: #eef4fb; --on-dark-muted: #9aa6b6; --accent: #a5f3fc; --accent-ink: #04161a;
   --g1: 30, 58, 138; --g2: 56, 189, 248; --g3: 34, 211, 238; --g4: 14, 165, 233; --link-user: #7dd3fc;
-  --f1: #1e3a8a; --fi1: #eff6ff; --f2: #2563eb; --fi2: #ffffff; --f3: #38bdf8; --fi3: #04161a;
-  --f4: #22d3ee; --fi4: #04161a; --f5: #cffafe; --fi5: #0b0f17; --f6: #0e7490; --fi6: #ecfeff;
+  --f1: #0c4a6e; --fi1: #e0f2fe; --f2: #0284c7; --fi2: #f0f9ff; --f3: #7dd3fc; --fi3: #04161a;
+  --f4: #bae6fd; --fi4: #04161a; --f5: #f0f9ff; --fi5: #0b0f17; --f6: #075985; --fi6: #e0f2fe;
 }
 :root[data-theme='mono'] {
   --bg: #0d0d0d; --ink: #f5f5f5; --muted: #a3a3a3; --surface: #1a1a1a; --surface-2: #242424; --edge: rgba(255, 255, 255, 0.1);

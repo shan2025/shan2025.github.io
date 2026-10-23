@@ -16,12 +16,38 @@
 }
 @keyframes breathe { from { transform: translateX(-50%) scale(1); } to { transform: translateX(-50%) scale(1.06) translateY(-1.5%); } }
 
-/* the brain sits between the glow and the words, and never takes a click */
-.brain { position: absolute; z-index: 0; left: 0; top: 0; width: 100%; height: min(100svh, 980px); pointer-events: none; opacity: 0.85; }
+/* the glow starts below the first screen, so the brain forms on dark */
+.glow { top: calc(100svh - 160px); }
+
+/* the brain is pinned behind the first screen and "Ask anything", and never takes a click.
+   brain.js dims it as you scroll from the opening down to the chat. */
+.mind { position: relative; }
+.brain { position: sticky; z-index: 0; top: 0; display: block; width: 100%; height: 100svh; margin-bottom: -100svh; pointer-events: none; }
 .ask { position: relative; z-index: 1; }
 .panel { z-index: 1; }
-@media (prefers-reduced-motion: no-preference) { .js .brain { opacity: 0; animation: fade-in 1600ms ease 400ms forwards; } }
-@keyframes fade-in { to { opacity: 0.85; } }
+
+/* ---------- The opening: the brain, a line, and a way down ---------- */
+.opening {
+  position: relative; z-index: 1; min-height: calc(100svh - 72px); padding: 0 var(--margin) clamp(28px, 6svh, 64px);
+  display: flex; flex-direction: column; justify-content: flex-end; align-items: center; text-align: center; pointer-events: none;
+}
+.opening__title { font-size: var(--step-head); font-weight: 600; letter-spacing: -0.04em; line-height: 1; }
+.opening__sub { margin-top: 12px; max-width: 34em; color: var(--muted); font-size: var(--step-body); }
+.opening__cue {
+  pointer-events: auto; margin-top: 22px; display: inline-flex; align-items: center; gap: 8px; padding: 9px 16px 9px 18px; border-radius: 999px;
+  border: 1px solid var(--edge); color: var(--ink); font-size: 0.9375rem; font-weight: 600; text-decoration: none;
+  transition: background-color var(--t-hover) ease, transform var(--t-press) var(--ease-out);
+}
+.opening__cue:active { transform: scale(0.97); }
+@media (hover: hover) and (pointer: fine) { .opening__cue:hover { background: var(--surface-2); } }
+@media (prefers-reduced-motion: no-preference) {
+  .opening__title, .opening__sub, .opening__cue { opacity: 0; transform: translateY(12px); animation: rise 900ms var(--ease-out) forwards; }
+  .opening__title { animation-delay: 1900ms; }
+  .opening__sub { animation-delay: 2100ms; }
+  .opening__cue { animation-delay: 2400ms; }
+  .opening__cue svg { animation: nudge-down 1.8s ease-in-out 3.4s infinite; }
+}
+@keyframes nudge-down { 0%, 100% { transform: none; } 50% { transform: translateY(3px); } }
 
 /* ---------- Ask: the badge, the question and the chat box ---------- */
 .ask { width: min(860px, calc(100% - 2 * var(--margin))); margin: 0 auto; padding: clamp(40px, 9svh, 110px) 0 clamp(120px, 18svh, 220px); display: flex; flex-direction: column; align-items: center; text-align: center; }
@@ -136,7 +162,16 @@
 }
 .cube__stage:active { cursor: grabbing; }
 /* no box: just a faint halo in the mood's colour behind the cube, and its shadow on the page */
-.cube__stage::before { content: ''; position: absolute; left: 50%; top: 46%; width: calc(var(--s) * 6); height: calc(var(--s) * 5); transform: translate(-50%, -50%); border-radius: 50%; background: radial-gradient(closest-side, rgba(var(--g2), 0.14), transparent); pointer-events: none; }
+.cube__stage::before { content: ''; position: absolute; left: 50%; top: 46%; width: calc(var(--s) * 6); height: calc(var(--s) * 5); transform: translate(-50%, -50%); border-radius: 50%; background: radial-gradient(closest-side, rgba(var(--g2), calc(0.14 + var(--open) * 0.22)), transparent); pointer-events: none; }
+.cube { --open: 0; --sheen: 150deg; }
+/* the light at the heart of the cube: hidden when it's whole, shining through the gaps as it opens */
+.cube__core {
+  position: absolute; left: calc(var(--s) * -1.6); top: calc(var(--s) * -1.6); width: calc(var(--s) * 3.2); height: calc(var(--s) * 3.2);
+  border-radius: 50%; pointer-events: none; transition: transform 120ms linear; opacity: var(--open);
+  background: radial-gradient(closest-side, #fff 0%, rgba(var(--g3), 0.95) 22%, rgba(var(--g2), 0.45) 55%, transparent 100%);
+}
+/* the insides of the small cubes catch that light */
+.cb__plane.is-inner { background: radial-gradient(closest-side, rgba(var(--g3), calc(var(--open) * 0.7)), rgba(var(--g2), calc(var(--open) * 0.12))), var(--dark); }
 .cube__stage::after { content: ''; position: absolute; left: 50%; bottom: 9%; width: calc(var(--s) * 3.6); height: calc(var(--s) * 0.6); transform: translateX(-50%); border-radius: 50%; background: radial-gradient(closest-side, rgba(0, 0, 0, 0.5), transparent); pointer-events: none; }
 .cube__orbit { position: relative; width: 0; height: 0; transform-style: preserve-3d; transition: transform 120ms linear; }
 .cube__puzzle { position: absolute; transform-style: preserve-3d; }
@@ -146,7 +181,9 @@
 .cb__plane { position: absolute; inset: -0.5px; background: var(--dark); border-radius: calc(var(--s) * 0.03); }
 .cb__sticker {
   position: absolute; inset: 6%; display: grid; place-items: center; padding: 4px; text-align: center;
-  border-radius: calc(var(--s) * 0.09); background: var(--c); color: var(--ci);
+  border-radius: calc(var(--s) * 0.09); color: var(--ci);
+  /* a glossy surface: a reflection that slides as the cube turns, over the side's colour */
+  background: linear-gradient(var(--sheen), rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.06) 38%, rgba(255, 255, 255, 0) 55%, rgba(0, 0, 0, 0.14)), var(--c);
   font-size: calc(var(--s) * 0.13); font-weight: 700; line-height: 1.1; letter-spacing: -0.01em;
   overflow: hidden; cursor: pointer;
   /* a little gloss, like a real sticker catching the light */

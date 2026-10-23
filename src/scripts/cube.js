@@ -11,6 +11,9 @@
   const stage = root.querySelector('.cube__stage');
   const orbit = root.querySelector('.cube__orbit');
   const puzzle = root.querySelector('.cube__puzzle');
+  const core = document.createElement('div'); // the light in the middle of the cube
+  core.className = 'cube__core';
+  orbit.prepend(core);
   const card = {
     kind: root.querySelector('.cube__kind'),
     title: root.querySelector('.cube__title'),
@@ -68,6 +71,7 @@
         plane.className = 'cb__plane';
         plane.style.transform = PLANE[key];
         const outside = n.every((v, i) => !v || v === pos[i]);
+        if (!outside) plane.classList.add('is-inner'); // lit from inside when the cube opens
         if (outside) {
           const f = faceBy[key];
           const [row, col] = SQUARE[key](pos);
@@ -87,16 +91,23 @@
         el.append(plane);
       }
       puzzle.append(el);
-      const c = { el, pos, R: [[1, 0, 0], [0, 1, 0], [0, 0, 1]], tilt: [Math.random() * 60 - 30, Math.random() * 60 - 30] };
+      const c = {
+        el, pos, R: [[1, 0, 0], [0, 1, 0], [0, 0, 1]],
+        tilt: [Math.random() * 60 - 30, Math.random() * 60 - 30],
+        // each small cube hangs on its own spring: g is how far it has drifted out, v how fast it's moving,
+        // pull how strongly it's drawn back (they don't all arrive together), phase for the hover in mid-air
+        g: 0, v: 0, pull: 0.75 + Math.random() * 0.5, phase: Math.random() * Math.PI * 2,
+      };
       place(c);
       cubies.push(c);
     }
   };
-  // gap: how far apart the small cubes have drifted (0 = a solid cube), see "coming apart" below
-  let gap = 0;
+  // how far apart the small cubes drift at most (in cube widths), see "coming apart" below
   const GAP = 0.9;
+  let floatAt = 0;
   const place = (c, extra = '') => {
-    const k = 1 + gap, t = gap / GAP;
+    const t = Math.max(0, c.g) / GAP;
+    const k = 1 + c.g + Math.sin(floatAt * 0.0017 + c.phase) * 0.05 * t; // a little bob while held apart
     c.el.style.transform = `${extra} translate3d(calc(${c.pos[0] * k} * var(--s)), calc(${c.pos[1] * k} * var(--s)), calc(${c.pos[2] * k} * var(--s))) rotateX(${c.tilt[0] * t}deg) rotateY(${c.tilt[1] * t}deg) ${matrix3d(c.R)}`;
   };
 
@@ -197,7 +208,11 @@
 
   // ---- turning the whole cube by dragging, and telling a drag from a tap ----
   let rx = -24, ry = -36, from = null, moved = 0;
-  const view = () => { orbit.style.transform = `rotateX(${rx}deg) rotateY(${ry}deg)`; };
+  const view = () => {
+    orbit.style.transform = `rotateX(${rx}deg) rotateY(${ry}deg)`;
+    core.style.transform = `rotateY(${-ry}deg) rotateX(${-rx}deg)`; // the light inside always faces you
+    root.style.setProperty('--sheen', `${150 + ry * 0.6}deg`); // the reflection slides as the cube turns
+  };
   stage.addEventListener('pointerdown', (e) => { from = [e.clientX, e.clientY]; moved = 0; });
   addEventListener('pointermove', (e) => {
     if (!from) return;
@@ -217,8 +232,11 @@
   });
 
   // ---- coming apart: away from the middle of the screen the small cubes drift apart and tilt, and they
-  // click back together as the cube scrolls to the centre. A mouse over the cube parts them a little. ----
-  let aim = 0, hovering = false, raf = 0, introStarted = false;
+  // click back together as the cube scrolls to the centre. Each one is on a spring, so they're pulled back
+  // with a little overshoot and wobble, and while apart they bob, held by the pull. Light from a core in the
+  // middle shows through the gaps and on the insides. A mouse over the cube parts them a little. ----
+  let aim = 0, hovering = false, raf = 0, introStarted = false, onScreen = true, last = 0;
+  const STIFF = 140, DAMP = 11;
   const measure = () => {
     const r = stage.getBoundingClientRect();
     const d = Math.min(1, Math.abs(r.top + r.height / 2 - innerHeight / 2) / (innerHeight / 2));
@@ -226,18 +244,31 @@
     aim = reduced.matches ? 0 : GAP * apart * apart * (3 - 2 * apart) + (hovering ? 0.1 : 0);
     if (d < 0.2 && !introStarted) intro();
   };
-  const tick = () => {
+  const tick = (now) => {
     raf = 0;
+    const dt = Math.min(0.033, (now - (last || now)) / 1000); last = now;
+    let moving = false, open = 0;
     if (!busy) { // a layer mid-turn keeps its spacing until the turn lands
       measure();
-      gap = Math.abs(aim - gap) < 0.002 ? aim : gap + (aim - gap) * 0.14;
-      for (const c of cubies) place(c);
+      floatAt = now;
+      for (const c of cubies) {
+        c.v += (STIFF * c.pull * (aim - c.g) - DAMP * c.v) * dt;
+        c.g += c.v * dt;
+        if (Math.abs(c.v) > 0.002 || Math.abs(aim - c.g) > 0.002) moving = true;
+        else { c.g = aim; c.v = 0; }
+        open += Math.max(0, c.g);
+        place(c);
+      }
+      root.style.setProperty('--open', Math.min(1, open / cubies.length / GAP * 1.6).toFixed(3));
     }
-    if (busy || gap !== aim) raf = requestAnimationFrame(tick);
+    // keep going while anything moves, or while the pieces hang apart on screen (they bob)
+    if (busy || moving || (aim > 0.02 && onScreen && !reduced.matches)) raf = requestAnimationFrame(tick);
+    else last = 0;
   };
   const nudge = () => { if (!raf) raf = requestAnimationFrame(tick); };
   addEventListener('scroll', nudge, { passive: true });
   addEventListener('resize', nudge);
+  new IntersectionObserver(([e]) => { onScreen = e.isIntersecting; if (onScreen) nudge(); }).observe(stage);
   stage.addEventListener('pointerenter', (e) => { if (e.pointerType === 'mouse') { hovering = true; nudge(); } });
   stage.addEventListener('pointerleave', () => { hovering = false; nudge(); });
 
@@ -255,8 +286,8 @@
 
   build();
   measure();
-  gap = aim; // no fly-in on page load; the movement belongs to scrolling
-  for (const c of cubies) place(c);
+  for (const c of cubies) { c.g = aim; place(c); } // no fly-in on page load; the movement belongs to scrolling
+  nudge();
   view();
   root.classList.add('is-live');
   controls();
