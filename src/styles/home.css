@@ -163,9 +163,16 @@
 .cube__items { list-style: none; padding: 0; display: grid; gap: 6px; }
 .cube__items[hidden], .cube__link[hidden] { display: none; }
 .cube__sides { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
-.cube__side { font: inherit; font-size: 0.8125rem; font-weight: 700; border: 0; border-radius: 999px; padding: 7px 12px; cursor: pointer; background: var(--c); color: var(--ci); transition: transform var(--t-press) var(--ease-out), filter var(--t-hover) ease; }
+/* quiet pills like the rest of the site; the side's colour is only the dot */
+.cube__side {
+  display: inline-flex; align-items: center; gap: 8px;
+  font: inherit; font-size: 0.8125rem; font-weight: 600; color: var(--ink);
+  border: 1px solid var(--edge); border-radius: 999px; padding: 6px 13px 6px 10px; cursor: pointer; background: transparent;
+  transition: transform var(--t-press) var(--ease-out), background-color var(--t-hover) ease, border-color var(--t-hover) ease;
+}
+.cube__side::before { content: ''; width: 9px; height: 9px; border-radius: 50%; background: var(--c); box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.12); }
 .cube__side:active { transform: scale(0.95); }
-@media (hover: hover) and (pointer: fine) { .cube__side:hover { filter: brightness(1.1); } }
+@media (hover: hover) and (pointer: fine) { .cube__side:hover { background: var(--surface-2); border-color: transparent; } }
 .cube__controls { display: flex; gap: 8px; margin-top: 4px; }
 .cube__btn { font: inherit; font-weight: 600; font-size: 0.9375rem; color: var(--ink); background: var(--surface-2); border: 0; border-radius: 999px; padding: 9px 18px; cursor: pointer; transition: transform var(--t-press) var(--ease-out), opacity var(--t-hover) ease; }
 .cube__btn:active { transform: scale(0.96); }
