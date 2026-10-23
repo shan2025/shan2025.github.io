@@ -4,12 +4,14 @@
 //   AI_BASE_URL  optional, default https://api.deepseek.com
 //   AI_MODELS    optional, comma-separated, tried in order; default deepseek-chat
 import type { APIRoute } from 'astro';
+import { getSecret } from 'astro:env/server';
 import { knowledge } from '../../data/knowledge';
 import { site } from '../../data/site';
 
 export const prerender = false;
 
-const env = (name: string) => import.meta.env[name] ?? process.env[name];
+// Read at request time (on Vercel the key lives only in the function's runtime environment, not the build).
+const env = (name: string): string | undefined => getSecret(name) || process.env[name] || undefined;
 
 // Best effort per-instance limit: plenty for real visitors, stops a script from draining the free quota.
 const LIMIT = 20;
