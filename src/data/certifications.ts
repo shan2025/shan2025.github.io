@@ -67,8 +67,20 @@ export const certifications: Certification[] = [
   {
     name: 'Introduction to Model Context Protocol',
     issuer: 'Anthropic',
-    platform: 'Anthropic',
-    about: 'Tool orchestration for multi-step AI workflows with the Model Context Protocol.',
+    platform: 'Anthropic Academy',
+    year: '2025',
+    date: 'December 2025',
+    about: 'Building MCP servers and clients: defining tools, resources and prompts, testing with the server inspector, and connecting AI applications to them (14 lessons and a final assessment).',
+    url: 'https://verify.skilljar.com/c/2z2ams2f3akv',
+  },
+  {
+    name: 'AI Fluency for students',
+    issuer: 'Anthropic',
+    platform: 'Anthropic Academy',
+    year: '2026',
+    date: 'January 2026',
+    about: 'Anthropic’s AI Fluency framework for working with AI effectively and responsibly in learning and career planning.',
+    url: 'https://verify.skilljar.com/c/8xqsb5mmyyz8',
   },
 ];
 
