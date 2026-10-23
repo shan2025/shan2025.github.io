@@ -156,7 +156,7 @@
 .cube__intro { margin-top: 14px; font-size: var(--step-lead); line-height: 1.35; letter-spacing: -0.015em; color: color-mix(in srgb, var(--ink) 85%, transparent); }
 .cube__body { margin-top: clamp(16px, 3vw, 36px); display: grid; grid-template-columns: 7fr 5fr; gap: 24px; align-items: center; }
 /* the stage holds the cube; its see-through canvas reaches past it on every side, so the blocks have room to part */
-.cube__stage { position: relative; z-index: 1; height: clamp(420px, 62svh, 660px); touch-action: pan-y; cursor: grab; user-select: none; -webkit-user-select: none; }
+.cube__stage { position: relative; z-index: 3; height: clamp(420px, 62svh, 660px); touch-action: pan-y; cursor: grab; user-select: none; -webkit-user-select: none; }
 .cube__stage:active { cursor: grabbing; }
 .cube__stage.is-pointing { cursor: pointer; }
 .cube__canvas { position: absolute; top: -20%; bottom: -20%; left: -16%; right: -16%; width: 132%; height: 140%; pointer-events: none; display: block; }
@@ -165,7 +165,7 @@
 html:not(.js) .cube__list, .cube.no-3d .cube__list { display: grid; }
 html:not(.js) .cube__body, .cube.no-3d .cube__body { display: none; }
 
-.cube__card { position: relative; z-index: 2; padding: clamp(22px, 2.6vw, 34px); border-radius: var(--radius); background: color-mix(in srgb, var(--bg) 82%, transparent); border: 1px solid var(--edge); display: grid; gap: 12px; align-content: start; justify-items: start; }
+.cube__card { position: relative; z-index: 1; padding: clamp(22px, 2.6vw, 34px); border-radius: var(--radius); background: color-mix(in srgb, var(--bg) 82%, transparent); border: 1px solid var(--edge); display: grid; gap: 12px; align-content: start; justify-items: start; }
 .cube__kind { color: var(--picked); font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace; font-size: 0.8125rem; }
 .cube__title { font-size: var(--step-lead); letter-spacing: -0.025em; line-height: 1.2; }
 .cube__items { list-style: none; padding: 0; display: grid; gap: 6px; }
