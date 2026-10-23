@@ -4,6 +4,7 @@ import Bar from '../components/Bar.astro';
 import WorkFigure from '../components/WorkFigure.astro';
 import { getCollection } from 'astro:content';
 import { site, resumes, interests } from '../data/site';
+import { certifications } from '../data/certifications';
 import '../styles/home.css';
 
 const work = (await getCollection('work', ({ data }) => !data.placeholder)).sort((a, b) => a.data.order - b.data.order);
@@ -49,6 +50,7 @@ const tabs = [
   { id: 'writing', label: 'Writing' },
   { id: 'products', label: 'Products' },
   { id: 'map', label: 'Mind map' },
+  { id: 'certs', label: 'Certifications' },
   { id: 'resume', label: 'Résumé' },
 ];
 ---
@@ -158,6 +160,21 @@ const tabs = [
           </aside>
         </div>
         <script type="application/json" id="map-data" set:html={mapData} />
+      </div>
+
+      <div class="pane" role="tabpanel" id="pane-certs" aria-labelledby="tab-certs">
+        <ul class="cards">
+          {certifications.map((c) => (
+            <li>
+              <article class="card card--text card--cert">
+                <p class="cert__issuer"><span class="cert__badge" aria-hidden="true">{c.issuer.slice(0, 1)}</span>{c.issuer}{c.platform !== c.issuer && `, on ${c.platform}`}{c.year && `, ${c.year}`}</p>
+                <h2 class="card__title">{c.name}</h2>
+                <p class="card__excerpt">{c.about}</p>
+                {c.url && <p class="card__meta"><a class="link" href={c.url}>Verify certificate</a></p>}
+              </article>
+            </li>
+          ))}
+        </ul>
       </div>
 
       <div class="pane" role="tabpanel" id="pane-resume" aria-labelledby="tab-resume">

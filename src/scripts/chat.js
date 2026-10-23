@@ -21,6 +21,7 @@
     { keys: ['hancod', 'job', 'work now', 'current', 'role', 'growth', 'company'], text: 'Shadin is a Growth Manager Trainee at Hancod (since June 2026), owning acquisition and conversion for a live service website. Before that he was a Business Analyst intern there, writing specs for 12+ product modules and running testing through to defect closure.' },
     { keys: ['hire', 'hiring', 'open to', 'available', 'roles', 'looking', 'opportunit', 'contact', 'email', 'reach'], text: `He's open to product manager, business analyst and project manager roles in fintech, AI and technology. The best way to reach him is ${EMAIL}, and his résumés are at /resume/.` },
     { keys: ['resume', 'résumé', 'cv'], text: 'There are three versions of his résumé, for product, AI and business analysis, and business analyst roles. Download them at /resume/.' },
+    { keys: ['certif', 'coursera', 'course', 'certificate', 'credential'], text: 'His certifications: the IBM Data Science Professional Certificate, IBM’s RAG for Generative AI Applications Specialization and Python for Data Science, AI & Development (all on Coursera), plus Anthropic’s Introduction to Model Context Protocol. See them in the Certifications tab below.' },
     { keys: ['mba', 'study', 'education', 'degree', 'university', 'college', 'bca'], text: 'He has an MBA in Financial Technology from Pondicherry University (2024 to 2026) and a BCA from Punjab Technical University (2020 to 2023).' },
     { keys: ['skill', 'tool', 'sql', 'python', 'power bi', 'know'], text: 'His core skills: requirements and specs (BRD, FRD, FSD, HFD), user stories and acceptance criteria, UAT and defect triage, Agile delivery, funnels and metrics, SQL, Power BI, Tableau, Python, and AI systems like RAG pipelines and agent workflows.' },
     { keys: ['wallet', 'crypto', 'risk', 'model', 'machine learning'], text: 'His wallet risk study built a classifier for high-risk crypto wallets. It scored 78% accuracy but caught none of the high-risk wallets, so he reported recall and ROC-AUC instead: a good example of "it ran" not meaning "it worked".' },
@@ -76,11 +77,24 @@
     return out.join('');
   }).join('');
 
+  // Only the latest exchanges stay on screen; older ones fade away at the top to keep the chat short.
+  // The assistant still remembers them (they stay in `history`).
+  const KEEP = 4;
+  const fadeOld = () => {
+    const live = [...log.querySelectorAll('.msg:not(.is-leaving)')];
+    for (const el of live.slice(0, Math.max(0, live.length - KEEP))) {
+      el.classList.add('is-leaving');
+      const gone = () => el.remove();
+      if (matchMedia('(prefers-reduced-motion: reduce)').matches) gone();
+      else el.addEventListener('animationend', gone, { once: true });
+    }
+  };
   const bubble = (who, html) => {
     const el = document.createElement('div');
     el.className = `msg msg--${who}`;
     el.innerHTML = html;
     log.append(el);
+    fadeOld();
     log.scrollTop = log.scrollHeight;
     return el;
   };

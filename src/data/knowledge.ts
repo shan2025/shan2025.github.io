@@ -2,6 +2,7 @@
 // the site doesn't. Add facts here (or in the content files) and the assistant picks them up.
 import { getCollection } from 'astro:content';
 import { site, resumes, interests } from './site';
+import { certifications } from './certifications';
 
 export const facts = `
 Name: ${site.fullName} (goes by Shadin). Based in ${site.place}, India. Email: ${site.email}. LinkedIn: ${site.links.linkedin}. GitHub: ${site.links.github}.
@@ -12,7 +13,7 @@ Before that: Business Analyst Intern at Hancod (March to May 2026): wrote FSDs, 
 Looking for: product manager, business analyst and project manager roles in fintech, AI and technology. Open to Bengaluru and other cities, hybrid, remote or on-site.
 
 Education: MBA in Financial Technology, Pondicherry University (2024 to 2026). BCA, Punjab Technical University, Chandigarh Group of Colleges (2020 to 2023).
-Certifications: IBM Data Science Professional Certificate; IBM RAG for Generative AI Applications Specialization; Anthropic's Introduction to Model Context Protocol.
+Certifications (state each one's platform exactly; only those marked Coursera are on Coursera): ${certifications.map((c) => `${c.name} (issued by ${c.issuer}, platform: ${c.platform}${c.year ? `, ${c.year}` : ''}): ${c.about}${c.url ? ` Verify: ${c.url}` : ''}`).join('; ')}.
 Activities: speaker liaison at TEDx Pondicherry University 2025 (for G. Karthikeyan, founder of Sristi); student coordinator for BANQUEST 2024.
 Skills: requirement gathering and documentation (BRD, FRD, FSD, HFD), user stories and acceptance criteria, UAT and defect triage, Agile/Scrum, roadmap prioritisation, funnels and metrics, SQL, Power BI, Tableau, Python (Pandas), REST APIs, PostgreSQL/MySQL, RAG pipelines, AI agent workflows, MCP tool orchestration.
 Interests: ${interests.map((i) => `${i.name} (${i.note})`).join('; ')}.

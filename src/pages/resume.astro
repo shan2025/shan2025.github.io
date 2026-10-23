@@ -1,7 +1,8 @@
 ---
 import Base from '../layouts/Base.astro';
 import Bar from '../components/Bar.astro';
-import { resumes, site } from '../data/site';
+import { resumes } from '../data/site';
+import { certifications } from '../data/certifications';
 import '../styles/inner.css';
 
 const timeline = [
@@ -41,6 +42,18 @@ const timeline = [
           </li>
         ))}
       </ol>
+    </section>
+    <section class="timeline" aria-labelledby="cert-title">
+      <h2 id="cert-title" class="timeline__title">Certifications</h2>
+      <ul class="timeline__list">
+        {certifications.map((c) => (
+          <li class="timeline__item">
+            <h3>{c.name}</h3>
+            <p class="timeline__when">{c.issuer}{c.platform !== c.issuer && `, on ${c.platform}`}{c.year && `, ${c.year}`}</p>
+            <p>{c.about}{c.url && <> <a class="link" href={c.url}>Verify</a></>}</p>
+          </li>
+        ))}
+      </ul>
     </section>
   </div>
 </Base>
