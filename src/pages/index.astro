@@ -45,7 +45,7 @@ const links: [string, string, number?][] = [
 ];
 const mapData = JSON.stringify({ nodes, links: links.filter(([a, b]) => nodes.some((n) => n.id === a) && nodes.some((n) => n.id === b)) });
 
-// ---- The Jenga tower, bottom layer first: skills and certificates hold up the projects; writing sits on top ----
+// ---- The cube: six faces, one for each side of the work; the centre square names the side ----
 const certLink = (name: string) => certifications.find((c) => c.name.startsWith(name))?.url;
 const skill = (title: string, text: string) => ({ type: 'skill', kind: 'Skill', title, text, href: '/resume/' });
 const cert = (title: string, short: string) => {
@@ -62,38 +62,25 @@ const interest = (id: string) => {
   const i = interests.find((x) => x.id === id)!;
   return { type: 'interest', kind: 'Interest', title: i.name, text: i.note, href: '#explore' };
 };
-// short labels for the wood; the full title shows in the card
-const shortTitles: Record<string, string> = {
-  'from-blockchain-to-ai-agents': 'Blockchain to AI',
-  'agents-that-report-back': 'Agents report back',
-  'ran-is-not-worked': 'Status vs outcome',
+const post = (id: string, label: string) => {
+  const p = writing.find((x) => x.id === id)!;
+  return { type: 'note', kind: 'Writing', title: p.data.title, label, text: p.data.excerpt, href: `/writing/${p.id}/` };
 };
-const jengaItems = [
-  edu('MBA, FinTech', 'MBA in Financial Technology, Pondicherry University (Central University), 2024 to 2026.'),
-  edu('BCA', 'Bachelor of Computer Applications, Punjab Technical University, Chandigarh Group of Colleges, 2020 to 2023.'),
-  { ...skill('Specs & requirements', 'BRDs, FRDs, FSDs and HFDs for 12+ modules at Hancod, with user stories and acceptance criteria written before design starts.'), label: 'Requirements' },
-  skill('UAT & defects', 'End-to-end testing at Hancod, from test scenarios to defect closure, across design, engineering and QA.'),
-  skill('SQL & Power BI', 'Funnels, metrics and dashboards in SQL, Power BI and Tableau.'),
-  skill('Python & ML', 'Pandas, scikit-learn and machine learning, from the IBM Data Science programme to the wallet and Falcon 9 studies.'),
-  skill('Growth', 'Owning user acquisition and conversion for a live service website as Growth Manager Trainee at Hancod.'),
-  act('TEDx Pondicherry', 'Speaker liaison at TEDx Pondicherry University 2025 for G. Karthikeyan, founder of Sristi: coordinating the speaker, the team and university admin.'),
-  act('BANQUEST 2024', 'Student coordinator for BANQUEST 2024, the department’s flagship industry–academia programme.'),
-  cert('IBM Data Science', 'IBM Data Science'),
-  cert('RAG for Generative', 'RAG Specialization'),
-  cert('Applied Data Science', 'Applied Data Science'),
-  cert('Introduction to Model Context', 'Intro to MCP'),
-  cert('AI Fluency', 'AI Fluency'),
-  interest('fintech'),
-  interest('agents'),
-  interest('evals'),
-  proj('hancod'),
-  proj('wallet-risk'),
-  proj('spacex-landing'),
-  proj('finchat'),
-  proj('mock-interview'),
-  { type: 'contact', kind: 'Résumé', title: 'Résumé', text: 'Three one-page versions: product, AI and business analysis, and business analysis.', href: '/resume/' },
-  { type: 'contact', kind: 'Contact', title: 'Say hello', text: `Hiring, a project, or a question about FinChat? Write to ${site.email}.`, href: `mailto:${site.email}` },
-  ...writing.slice(0, 3).map((p) => ({ type: 'note', kind: 'Writing', title: p.data.title, label: shortTitles[p.id], text: p.data.excerpt, href: `/writing/${p.id}/` })),
+type Square = { title: string; label?: string; kind: string; text: string; href?: string };
+// faces are named for where they start: front, right, top, back, left, bottom (classic cube colours)
+const cubeFaces: { key: string; name: string; colour: string; ink: string; text: string; items: Square[] }[] = [
+  { key: 'front', name: 'Projects', colour: '#21a454', ink: '#ffffff', text: 'Things I built and shipped, and what actually happened.',
+    items: [proj('finchat'), proj('hancod'), { ...proj('wallet-risk'), label: 'Wallet risk' }, { ...proj('spacex-landing'), label: 'Falcon 9' }, { ...proj('mock-interview'), label: 'Mock interviews' }] },
+  { key: 'right', name: 'AI', colour: '#d7342b', ink: '#ffffff', text: 'Agents, retrieval and evaluation: what I build with and keep learning.',
+    items: [{ ...cert('RAG for Generative', 'RAG Specialization'), label: 'RAG' }, { ...cert('Introduction to Model Context', 'Intro to MCP'), label: 'MCP' }, cert('AI Fluency', 'AI Fluency'), interest('agents'), interest('evals'), post('agents-that-report-back', 'Agents report back')] },
+  { key: 'top', name: 'Product', colour: '#f4f4ef', ink: '#1c1c1c', text: 'Specs, testing and the habit of checking the outcome, not the status.',
+    items: [{ ...skill('Specs & requirements', 'BRDs, FRDs, FSDs and HFDs for 12+ modules at Hancod, with user stories and acceptance criteria written before design starts.'), label: 'Requirements' }, { ...skill('UAT & defects', 'End-to-end testing at Hancod, from test scenarios to defect closure, across design, engineering and QA.'), label: 'UAT' }, interest('product'), post('ran-is-not-worked', 'Status vs outcome'), { kind: 'Résumé', title: 'Résumé', text: 'Three one-page versions: product, AI and business analysis, and business analysis.', href: '/resume/' }] },
+  { key: 'back', name: 'Data', colour: '#2563d9', ink: '#ffffff', text: 'Python, SQL and machine learning, from the IBM programme to my own studies.',
+    items: [skill('Python & ML', 'Pandas, scikit-learn and machine learning, from the IBM Data Science programme to the wallet and Falcon 9 studies.'), { ...skill('SQL & Power BI', 'Funnels, metrics and dashboards in SQL, Power BI and Tableau.'), label: 'SQL & BI' }, { ...cert('IBM Data Science', 'IBM Data Science'), label: 'IBM DS' }, { ...cert('Applied Data Science', 'Applied Data Science'), label: 'Applied DS' }] },
+  { key: 'left', name: 'Growth', colour: '#f08519', ink: '#ffffff', text: 'Acquisition and conversion at Hancod, an MBA in FinTech, and the roles I took on at university.',
+    items: [skill('Growth', 'Owning user acquisition and conversion for a live service website as Growth Manager Trainee at Hancod.'), { ...edu('MBA, FinTech', 'MBA in Financial Technology, Pondicherry University (Central University), 2024 to 2026.'), label: 'MBA' }, interest('fintech'), { ...act('TEDx Pondicherry', 'Speaker liaison at TEDx Pondicherry University 2025 for G. Karthikeyan, founder of Sristi: coordinating the speaker, the team and university admin.'), label: 'TEDx' }, { ...act('BANQUEST 2024', 'Student coordinator for BANQUEST 2024, the department’s flagship industry–academia programme.'), label: 'BANQUEST' }, post('from-blockchain-to-ai-agents', 'Blockchain to AI')] },
+  { key: 'bottom', name: 'Me', colour: '#f6cf2b', ink: '#1c1c1c', text: 'Where I studied, where to read me, and how to reach me.',
+    items: [edu('BCA', 'Bachelor of Computer Applications, Punjab Technical University, Chandigarh Group of Colleges, 2020 to 2023.'), { kind: 'Contact', title: 'Say hello', text: `Hiring, a project, or a question about FinChat? Write to ${site.email}.`, href: `mailto:${site.email}` }, { kind: 'Writing', title: 'Writing', text: 'Notes from building in public.', href: '/writing/' }, { kind: 'Profile', title: 'GitHub', text: 'Code for FinChat, the wallet risk study, the Falcon 9 capstone and more.', href: site.links.github }, { kind: 'Profile', title: 'LinkedIn', text: 'Where I post about what I’m building.', href: site.links.linkedin }] },
 ];
 
 const tabs = [
@@ -143,28 +130,32 @@ const tabs = [
       <p class="ask__note" data-load style="--d:300ms">Answers come from Shadin’s own work and résumé, and can be wrong. For anything important, <a class="link" href={`mailto:${site.email}`}>email him</a>.</p>
     </section>
 
-    <!-- The Jenga tower: pull a block to read it; pull a load-bearing one and it falls -->
-    <section class="jenga" id="jenga" aria-labelledby="jenga-heading">
-      <div class="jenga__head">
-        <h2 id="jenga-heading" class="jenga__heading">It ran. Did it hold?</h2>
-        <p class="jenga__intro">Every block is something I built, learned or wrote. Pull one out to read it. Pull a load-bearing one and the tower falls.</p>
+    <!-- The cube: six sides of the work; it scrambles, then solves itself -->
+    <section class="cube" id="cube" aria-labelledby="cube-heading">
+      <div class="cube__head">
+        <h2 id="cube-heading" class="cube__heading">Every side of my work</h2>
+        <p class="cube__intro">Six sides, one cube. Drag to turn it, tap a square to read it. Scramble it if you like: it knows how to solve itself.</p>
       </div>
-      <div class="jenga__body">
-        <div class="jenga__stage" tabindex="-1" aria-label="Jenga tower of Shadin’s work. Drag to turn it.">
-          <div class="jenga__tower"></div>
+      <div class="cube__body">
+        <div class="cube__stage" aria-label="A puzzle cube of Shadin’s work. Drag to turn it.">
+          <div class="cube__orbit"><div class="cube__puzzle"></div></div>
         </div>
-        <aside class="jenga__card" aria-live="polite">
-          <p class="jenga__kind">How to play</p>
-          <h3 class="jenga__title">Pick a block</h3>
-          <p class="jenga__text">Click a block to pull it out and read about it. Drag sideways to turn the tower. Skills and certificates at the bottom, projects in the middle, writing on top.</p>
-          <a class="button jenga__link" href="#jenga" hidden>Open</a>
-          <p class="jenga__foot"><span class="jenga__count"></span><button type="button" class="jenga__reset" hidden>Rebuild the tower</button></p>
+        <aside class="cube__card" aria-live="polite">
+          <p class="cube__kind">How it works</p>
+          <h3 class="cube__title">Pick a square</h3>
+          <p class="cube__text">Each colour is one side of my work. Tap a square to read about it, or tap the side buttons below to see everything on that side.</p>
+          <ul class="cube__items" hidden></ul>
+          <a class="button cube__link" href="#cube" hidden>Open</a>
+          <div class="cube__sides" role="group" aria-label="Sides of the cube">
+            {cubeFaces.map((f) => <button type="button" class="cube__side" data-face={f.key} style={`--c:${f.colour};--ci:${f.ink}`}>{f.name}</button>)}
+          </div>
+          <p class="cube__controls"><button type="button" class="cube__btn" data-act="scramble">Scramble</button><button type="button" class="cube__btn" data-act="solve" disabled>Solve</button></p>
         </aside>
       </div>
-      <ul class="jenga__list">
-        {jengaItems.map((it) => <li><a href={it.href}>{it.title}</a> <span>{it.kind}</span></li>)}
+      <ul class="cube__list">
+        {cubeFaces.map((f) => <li><strong>{f.name}:</strong> {f.items.map((it, i) => <>{i > 0 && ', '}{it.href ? <a href={it.href}>{it.title}</a> : it.title}</>)}</li>)}
       </ul>
-      <script type="application/json" id="jenga-data" set:html={JSON.stringify(jengaItems)} />
+      <script type="application/json" id="cube-data" set:html={JSON.stringify(cubeFaces)} />
     </section>
 
     <!-- The rest of the site, in a panel rising from the bottom of the glow -->
@@ -276,7 +267,7 @@ const tabs = [
   </div>
 
   <script src="../scripts/brain.js"></script>
-  <script src="../scripts/jenga.js"></script>
+  <script src="../scripts/cube.js"></script>
   <script src="../scripts/tabs.js"></script>
   <script src="../scripts/chat.js"></script>
   <script src="../scripts/mindmap.js"></script>
