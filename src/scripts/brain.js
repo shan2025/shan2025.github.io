@@ -1,7 +1,7 @@
 // The neurons on the first screen, drawn on a canvas, no library.
 // On arrival they fly in from all around and settle into a brain; each link forms once both of its ends have
 // arrived, with a signal sent across it. Then, like a brain rewiring itself, they let go of their links, drift
-// into new shapes (an idea, then a heart) and wire up again, before coming back to the brain.
+// into a new shape (an idea: a light bulb) and wire up again, before coming back to the brain.
 // A handful of the neurons are real things from the site (projects, interests, writing) and carry their names.
 // When a question or an answer in the chat mentions one, that neuron fires and the signal spreads.
 // Other scripts trigger it with:  window.dispatchEvent(new CustomEvent('brain:fire', { detail: text }))
@@ -69,17 +69,6 @@
     }
     return pts.map(([x, y, z]) => [x * 0.9, y * 0.9, z * 0.9]);
   };
-  // something cared about: a heart, its outline denser than its middle
-  const heartShape = (n) => {
-    const pts = [];
-    while (pts.length < n) {
-      const t = rand() * Math.PI * 2, s = rand() < 0.6 ? 1 : Math.sqrt(rand());
-      const x = 16 * Math.sin(t) ** 3 / 17;
-      const y = -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t)) / 17;
-      pts.push([x * s * 1.1, (y * s - 0.15) * 1.1, (rand() - 0.5) * 0.3 * (1.2 - s)]);
-    }
-    return pts;
-  };
   // the links of a shape: each neuron to its nearest few
   const wire = (pts, maxD2) => {
     const edges = [], neighbours = pts.map(() => []);
@@ -108,8 +97,7 @@
     const brain = brainShape(n);
     shapes = [
       { pts: brain, facing: false, ...wire(brain, 0.16) }, // turns slowly in space
-      { pts: bulbShape(n), facing: true }, // these two always face you
-      { pts: heartShape(n), facing: true },
+      { pts: bulbShape(n), facing: true }, // always faces you
     ];
     for (const s of shapes.slice(1)) Object.assign(s, wire(s.pts, 0.08));
     // every neuron starts somewhere well outside, and flies in
@@ -185,8 +173,8 @@
     settled = false;
   };
 
-  // the order it plays in, over and over while the opening is on screen: brain → idea → heart → brain
-  const ORDER = [1, 2, 0];
+  // the order it plays in, over and over while the opening is on screen: brain → idea → brain
+  const ORDER = [1, 0];
   let step = 0, nextAt = 0;
   const plasticity = (now) => {
     if (reduced.matches) return;
