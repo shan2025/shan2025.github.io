@@ -209,7 +209,10 @@ export async function start(root) {
     obj.add(mesh, line);
     cubeGroup.add(obj);
     const r = () => (Math.random() - 0.5) * 0.35;
-    cubies.push({ obj, mesh, line, own, pos, q: new THREE.Quaternion(), tilt: new THREE.Euler(r(), r(), r()), order: 0 });
+    // pop: how far the block has lifted out towards you while pointed at (a spring), along popDir
+    const cubie = { obj, mesh, line, own, pos, q: new THREE.Quaternion(), tilt: new THREE.Euler(r(), r(), r()), order: 0, pop: 0, popV: 0, popDir: new THREE.Vector3() };
+    mesh.userData.cubie = cubie;
+    cubies.push(cubie);
   }
   const meshes = cubies.map((c) => c.mesh);
   // building order: bottom layer first, then up; in any order within a layer
@@ -228,7 +231,7 @@ export async function start(root) {
         c.obj.position.applyAxisAngle(turning.axis, turning.angle);
         tilted.premultiply(turnQ.setFromAxisAngle(turning.axis, turning.angle));
       }
-      c.obj.position.multiplyScalar(1 + gap);
+      c.obj.position.multiplyScalar(1 + gap).addScaledVector(c.popDir, c.pop);
       tiltE.set(c.tilt.x * t, c.tilt.y * t, c.tilt.z * t);
       c.obj.quaternion.copy(tilted).multiply(turnQ.setFromEuler(tiltE));
     }
@@ -324,6 +327,7 @@ export async function start(root) {
 
   // ---- pointing, dragging and tapping (on the stage; the canvas itself takes no clicks) ----
   const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
+  // what's under the pointer: the block, the face that was hit (if it carries a name), and which way that face points
   const pick = (e) => {
     const r = canvas.getBoundingClientRect();
     ndc.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
@@ -331,9 +335,20 @@ export async function start(root) {
     const hit = ray.intersectObjects(meshes, false)[0];
     if (!hit) return null;
     const m = hit.object.material[hit.face.materialIndex];
-    return m.userData.face ? m : null;
+    return { m: m.userData.face ? m : null, c: hit.object.userData.cubie, n: hit.face.normal.clone().applyQuaternion(hit.object.parent.quaternion) };
   };
-  let from = null, moved = 0, hovered = null;
+  // pointing at the cube parts it a little, and the block under the pointer lifts out towards you
+  let from = null, moved = 0, hovered = null, hoverC = null, overCube = false;
+  const point = (h) => {
+    const m = h && h.m, c = h && h.c;
+    overCube = !!h;
+    if (c && c !== hoverC) c.popDir.copy(h.n);
+    if (m === hovered && c === hoverC) return;
+    hovered = m;
+    hoverC = c;
+    stage.classList.toggle('is-pointing', !!(m && (m.userData.item || m.userData.centre)));
+    wake();
+  };
   const spin = new THREE.Quaternion();
   stage.addEventListener('pointerdown', (e) => { from = [e.clientX, e.clientY]; moved = 0; });
   addEventListener('pointermove', (e) => {
@@ -346,18 +361,13 @@ export async function start(root) {
       wake();
       return;
     }
-    if (e.pointerType !== 'mouse' || e.target !== stage || !built) return;
-    const m = pick(e);
-    if (m !== hovered) {
-      hovered = m;
-      stage.classList.toggle('is-pointing', !!(m && (m.userData.item || m.userData.centre)));
-      wake();
-    }
+    if (e.pointerType !== 'mouse' || !built || !near) return;
+    point(pick(e));
   });
-  stage.addEventListener('pointerleave', () => { if (hovered) { hovered = null; stage.classList.remove('is-pointing'); wake(); } });
+  stage.addEventListener('pointerleave', () => point(null));
   addEventListener('pointerup', (e) => {
     if (from && moved < 6 && built) {
-      const m = pick(e);
+      const h = pick(e), m = h && h.m;
       if (m && m.userData.item) showItem(m.userData.face, m.userData.slot);
       else if (m && m.userData.centre) showFace(m.userData.face);
     }
@@ -407,7 +417,7 @@ export async function start(root) {
     const r = stage.getBoundingClientRect();
     const d = Math.min(1, Math.abs(r.top + r.height / 2 - innerHeight / 2) / (innerHeight / 2));
     const apart = Math.max(0, Math.min(1, (d - 0.2) / 0.6));
-    aim = reduced || !built ? 0 : GAP * apart * apart * (3 - 2 * apart);
+    aim = reduced || !built ? 0 : GAP * apart * apart * (3 - 2 * apart) + (overCube && !busy ? 0.14 : 0);
     if (buildT0 === null && !built && d < 0.6) buildT0 = performance.now();
   };
 
@@ -440,9 +450,16 @@ export async function start(root) {
       turning.angle = turning.dir * (Math.PI / 2) * (k < 0.5 ? 4 * k ** 3 : 1 - (-2 * k + 2) ** 3 / 2);
       if (k >= 1) { turning.angle = turning.dir * Math.PI / 2; place(); finishTurn(); }
     }
+    let popping = false;
     if (!turning) { // the pull back together: a spring, so it lands with a little give
       gapV += (90 * (aim - gap) - 13 * gapV) * dt;
       gap += gapV * dt;
+      for (const c of cubies) { // the pointed-at block lifts out on its own, quicker spring
+        const want = c === hoverC && !busy && !reduced ? 0.32 : 0;
+        c.popV += (170 * (want - c.pop) - 18 * c.popV) * dt;
+        c.pop += c.popV * dt;
+        if (Math.abs(want - c.pop) > 1e-3 || Math.abs(c.popV) > 1e-3) popping = true;
+      }
     }
     place();
     if (aimQ) {
@@ -458,7 +475,7 @@ export async function start(root) {
     innerMat.emissiveIntensity = 0.1 + open * 0.5;
     if (built) for (const c of cubies) for (const m of c.own) m.emissiveIntensity = m === hovered ? FROST + 0.18 : FROST;
     renderer.render(world, camera);
-    const moving = !built || turning || aimQ || Math.abs(aim - gap) > 1e-3 || Math.abs(gapV) > 1e-3;
+    const moving = !built || turning || aimQ || popping || Math.abs(aim - gap) > 1e-3 || Math.abs(gapV) > 1e-3;
     if (near && !document.hidden && (!reduced || moving)) raf = requestAnimationFrame(frame);
   };
   function wake() { if (!raf && near && !document.hidden) { last = performance.now(); raf = requestAnimationFrame(frame); } }
