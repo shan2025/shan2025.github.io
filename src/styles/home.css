@@ -162,16 +162,7 @@
 }
 .cube__stage:active { cursor: grabbing; }
 /* no box: just a faint halo in the mood's colour behind the cube, and its shadow on the page */
-.cube__stage::before { content: ''; position: absolute; left: 50%; top: 46%; width: calc(var(--s) * 6); height: calc(var(--s) * 5); transform: translate(-50%, -50%); border-radius: 50%; background: radial-gradient(closest-side, rgba(var(--g2), calc(0.14 + var(--open) * 0.22)), transparent); pointer-events: none; }
-.cube { --open: 0; --sheen: 150deg; }
-/* the light at the heart of the cube: hidden when it's whole, shining through the gaps as it opens */
-.cube__core {
-  position: absolute; left: calc(var(--s) * -1.6); top: calc(var(--s) * -1.6); width: calc(var(--s) * 3.2); height: calc(var(--s) * 3.2);
-  border-radius: 50%; pointer-events: none; transition: transform 120ms linear; opacity: var(--open);
-  background: radial-gradient(closest-side, #fff 0%, rgba(var(--g3), 0.95) 22%, rgba(var(--g2), 0.45) 55%, transparent 100%);
-}
-/* the insides of the small cubes catch that light */
-.cb__plane.is-inner { background: radial-gradient(closest-side, rgba(var(--g3), calc(var(--open) * 0.7)), rgba(var(--g2), calc(var(--open) * 0.12))), var(--dark); }
+.cube__stage::before { content: ''; position: absolute; left: 50%; top: 46%; width: calc(var(--s) * 6); height: calc(var(--s) * 5); transform: translate(-50%, -50%); border-radius: 50%; background: radial-gradient(closest-side, rgba(var(--g2), 0.14), transparent); pointer-events: none; }
 .cube__stage::after { content: ''; position: absolute; left: 50%; bottom: 9%; width: calc(var(--s) * 3.6); height: calc(var(--s) * 0.6); transform: translateX(-50%); border-radius: 50%; background: radial-gradient(closest-side, rgba(0, 0, 0, 0.5), transparent); pointer-events: none; }
 .cube__orbit { position: relative; width: 0; height: 0; transform-style: preserve-3d; transition: transform 120ms linear; }
 .cube__puzzle { position: absolute; transform-style: preserve-3d; }
@@ -181,9 +172,7 @@
 .cb__plane { position: absolute; inset: -0.5px; background: var(--dark); border-radius: calc(var(--s) * 0.03); }
 .cb__sticker {
   position: absolute; inset: 6%; display: grid; place-items: center; padding: 4px; text-align: center;
-  border-radius: calc(var(--s) * 0.09); color: var(--ci);
-  /* a glossy surface: a reflection that slides as the cube turns, over the side's colour */
-  background: linear-gradient(var(--sheen), rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.06) 38%, rgba(255, 255, 255, 0) 55%, rgba(0, 0, 0, 0.14)), var(--c);
+  border-radius: calc(var(--s) * 0.09); background: var(--c); color: var(--ci);
   font-size: calc(var(--s) * 0.13); font-weight: 700; line-height: 1.1; letter-spacing: -0.01em;
   overflow: hidden; cursor: pointer;
   /* a little gloss, like a real sticker catching the light */
