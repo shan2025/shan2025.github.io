@@ -1,0 +1,55 @@
+---
+// The interface panel for each project, drawn from its real numbers.
+interface Props { id: string }
+const { id } = Astro.props;
+---
+{id === 'finchat' && (
+  <figure class="ui" data-ui>
+    <figcaption class="ui__cap">Before and after the August fixes</figcaption>
+    <table class="ui__table">
+      <thead><tr><th scope="col">Measure</th><th scope="col">Before</th><th scope="col">After</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">Runs that succeeded</th><td>29%</td><td>100%</td></tr>
+        <tr><th scope="row">Errors and budget overruns</th><td>183</td><td>0</td></tr>
+        <tr><th scope="row">Plato’s mission failure rate</th><td>73%</td><td>0%</td></tr>
+        <tr><th scope="row">Tokens on a benchmark run (indexed)</th><td>100</td><td>63</td></tr>
+      </tbody>
+    </table>
+    <p class="ui__foot">Before: the 7 days up to the fixes. After: the next 4.5 days, 91 runs. Plato’s rate and the token benchmark were measured separately.</p>
+  </figure>
+)}
+{id === 'hancod' && (
+  <figure class="ui" data-ui>
+    <figcaption class="ui__cap">How every module spec is laid out</figcaption>
+    <dl class="ui__spec">
+      <div><dt>Business goal</dt><dd>What the module must change for the business, in one sentence.</dd></div>
+      <div><dt>User stories</dt><dd>Who needs what and why, one story per need.</dd></div>
+      <div><dt>Acceptance criteria</dt><dd>The checks that decide “done”, written before design starts.</dd></div>
+      <div><dt>UAT and defects</dt><dd>Scenarios run against the build, every defect tracked to closure.</dd></div>
+    </dl>
+    <p class="ui__foot">The same shape across FSDs, HFDs and FRDs for 12+ modules.</p>
+  </figure>
+)}
+{id === 'wallet-risk' && (
+  <figure class="ui" data-ui>
+    <figcaption class="ui__cap">Wallet risk model, test set</figcaption>
+    <div class="ui__figures">
+      <p><span class="ui__big">78%</span> accuracy</p>
+      <p><span class="ui__big ui__big--bad">0</span> high-risk wallets caught</p>
+    </div>
+    <p class="ui__foot">Reported instead: recall and ROC-AUC on the high-risk class.</p>
+  </figure>
+)}
+{id === 'roster' && (
+  <figure class="ui" data-ui>
+    <figcaption class="ui__cap">FinChat’s agents</figcaption>
+    <ul class="ui__roster">
+      <li><span class="ui__agent">Plato</span><span>Runs the team and writes the morning brief</span></li>
+      <li><span class="ui__agent">Aurelius</span><span>Markets, investments and your watchlist</span></li>
+      <li><span class="ui__agent">Rasha</span><span>Careers and new job openings</span></li>
+      <li><span class="ui__agent">Nova</span><span>Research on new science and technology</span></li>
+      <li><span class="ui__agent">Sentinel</span><span>Checks every action before it runs</span></li>
+      <li><span class="ui__agent">Memory</span><span>Keeps what the team has learned</span></li>
+    </ul>
+  </figure>
+)}

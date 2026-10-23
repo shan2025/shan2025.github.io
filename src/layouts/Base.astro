@@ -1,0 +1,59 @@
+---
+import '../styles/global.css';
+import Footer from '../components/Footer.astro';
+import { site } from '../data/site';
+
+interface Props { title?: string; description?: string; image?: string }
+const { title, description = site.description, image } = Astro.props;
+const fullTitle = title ? `${title} | ${site.name}` : `${site.name}: ideas, built and checked`;
+const canonical = new URL(Astro.url.pathname, site.url);
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{fullTitle}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    <meta property="og:title" content={fullTitle} />
+    <meta property="og:description" content={description} />
+    {image && <meta property="og:image" content={new URL(image, site.url)} />}
+    <meta property="og:type" content="website" />
+    <meta name="theme-color" content="#1b1b1b" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://api.fontshare.com" />
+    <link rel="preconnect" href="https://cdn.fontshare.com" crossorigin />
+    <link href="https://api.fontshare.com/v2/css?f[]=switzer@300,400,500,600&display=swap" rel="stylesheet" />
+    <script is:inline>
+      document.documentElement.classList.add('js');
+      // A new colour mood on every visit: blue, then gold, then emerald, then monochrome, then round again.
+      // One visit keeps one colour across pages. ?theme=amber|ice|emerald|mono forces one (used by /themes/).
+      {
+        const order = ['ice', 'amber', 'emerald', 'mono'];
+        let t = new URLSearchParams(location.search).get('theme');
+        if (!order.includes(t)) {
+          try {
+            t = sessionStorage.getItem('shadin-theme');
+            if (!order.includes(t)) {
+              const n = parseInt(localStorage.getItem('shadin-visits') || '0', 10) || 0;
+              t = order[n % order.length];
+              localStorage.setItem('shadin-visits', String(n + 1));
+              sessionStorage.setItem('shadin-theme', t);
+            }
+          } catch { t = order[0]; }
+        }
+        document.documentElement.dataset.theme = t;
+      }
+    </script>
+    <slot name="head" />
+  </head>
+  <body>
+    <a class="skip" href="#main">Skip to content</a>
+    <slot name="header" />
+    <main id="main">
+      <slot />
+    </main>
+    <Footer />
+  </body>
+</html>

@@ -1,6 +1,15 @@
+# build output and installed packages
 node_modules/
-.next/
-out/
-.DS_Store
-*.log
-.env*
+dist/
+.astro/
+.vercel/
+
+# secrets: never upload these
+.env
+.env.*
+!.env.example
+api.txt
+
+# local tools
+.taste-skill/
+.claude/

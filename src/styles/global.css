@@ -1,0 +1,114 @@
+/* shadin.xyz: dark, soft and glowing, in the style Shadin chose (Lovable-like). Switzer throughout,
+   rounded controls, one warm accent taken from the glow. */
+
+:root {
+  /* Amber & gold (chosen). Other moods below override these; see /themes/ to compare. */
+  --bg: #141210;
+  --ink: #f6f2ea;
+  --muted: #a8a197;
+  --surface: #221e1a;
+  --surface-2: #2c2722;
+  --edge: rgba(255, 236, 200, 0.1);
+  --dark: #0e0c0a;
+  --dark-2: #1b1815;
+  --on-dark: #f6f2ea;
+  --on-dark-muted: #a8a197;
+  --accent: #fcd34d;
+  --accent-ink: #1a1305;
+  --g1: 194, 65, 12;   /* the glow's four bands, top to bottom, as r, g, b */
+  --g2: 245, 158, 11;
+  --g3: 251, 191, 36;
+  --g4: 217, 119, 6;
+  --link-user: #fb923c;
+
+  --step-small: clamp(0.875rem, 0.85rem + 0.1vw, 0.9375rem);
+  --step-body: clamp(1rem, 0.96rem + 0.2vw, 1.125rem);
+  --step-lead: clamp(1.25rem, 1.1rem + 0.6vw, 1.625rem);
+  --step-head: clamp(2.25rem, 1.5rem + 2.8vw, 4rem);
+  --step-display: clamp(2.75rem, 1.4rem + 4.2vw, 5.5rem);
+
+  --margin: clamp(16px, 3vw, 48px);
+  --gutter: clamp(12px, 1.6vw, 24px);
+  --section: clamp(96px, 11vw, 180px);
+  --radius: 28px;
+
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.76, 0, 0.24, 1);
+  --t-press: 140ms;
+  --t-hover: 180ms;
+  --stagger-item: 70ms;
+}
+
+:root[data-theme='emerald'] {
+  --bg: #0f1412; --ink: #eef6f1; --muted: #9baba3; --surface: #18201c; --surface-2: #212b26; --edge: rgba(200, 255, 225, 0.1);
+  --dark: #0a0e0c; --dark-2: #151b18; --on-dark: #eef6f1; --on-dark-muted: #9baba3; --accent: #6ee7b7; --accent-ink: #04140d;
+  --g1: 6, 78, 59; --g2: 16, 185, 129; --g3: 20, 184, 166; --g4: 5, 150, 105; --link-user: #5eead4;
+}
+:root[data-theme='ice'] {
+  --bg: #0b0f17; --ink: #eef4fb; --muted: #9aa6b6; --surface: #141b27; --surface-2: #1d2533; --edge: rgba(200, 230, 255, 0.1);
+  --dark: #070a10; --dark-2: #111722; --on-dark: #eef4fb; --on-dark-muted: #9aa6b6; --accent: #a5f3fc; --accent-ink: #04161a;
+  --g1: 30, 58, 138; --g2: 56, 189, 248; --g3: 34, 211, 238; --g4: 14, 165, 233; --link-user: #7dd3fc;
+}
+:root[data-theme='mono'] {
+  --bg: #0d0d0d; --ink: #f5f5f5; --muted: #a3a3a3; --surface: #1a1a1a; --surface-2: #242424; --edge: rgba(255, 255, 255, 0.1);
+  --dark: #080808; --dark-2: #161616; --on-dark: #f5f5f5; --on-dark-muted: #a3a3a3; --accent: #ffffff; --accent-ink: #0d0d0d;
+  --g1: 90, 90, 90; --g2: 170, 170, 170; --g3: 210, 210, 210; --g4: 120, 120, 120; --link-user: #d4d4d4;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; color-scheme: dark; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font-family: 'Switzer', system-ui, sans-serif; font-size: var(--step-body); line-height: 1.55; letter-spacing: -0.005em;
+  -webkit-font-smoothing: antialiased; overflow-x: clip;
+}
+img, svg { display: block; max-width: 100%; }
+h1, h2, h3, h4, p, ul, ol, dl, dd, figure, blockquote { margin: 0; }
+h1, h2, h3 { font-weight: 600; letter-spacing: -0.035em; line-height: 1.02; text-wrap: balance; }
+p { text-wrap: pretty; }
+a { color: inherit; }
+::selection { background: var(--accent); color: var(--accent-ink); }
+:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+.skip { position: absolute; left: var(--margin); top: -100px; z-index: 50; background: var(--ink); color: var(--bg); padding: 12px 16px; border-radius: 999px; }
+.skip:focus { top: 16px; }
+.wrap { padding-inline: var(--margin); }
+
+.link { text-decoration: underline; text-decoration-color: color-mix(in oklab, currentColor 35%, transparent); text-underline-offset: 0.22em; text-decoration-thickness: 0.07em; transition: text-decoration-color var(--t-hover) ease; }
+.button {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 44px; padding: 0 22px; border: 0; border-radius: 999px; cursor: pointer;
+  background: var(--ink); color: var(--bg);
+  font: inherit; font-weight: 600; font-size: 0.9375rem; letter-spacing: -0.01em; text-decoration: none;
+  transition: transform var(--t-press) var(--ease-out), background-color var(--t-hover) ease, color var(--t-hover) ease;
+}
+.button:active { transform: scale(0.97); }
+.button--ghost { background: var(--surface-2); color: var(--ink); }
+.button--light { background: var(--ink); color: var(--bg); }
+@media (hover: hover) and (pointer: fine) {
+  .link:hover { text-decoration-color: currentColor; }
+  .button:hover { background: #fff; }
+  .button--ghost:hover { background: color-mix(in oklab, var(--surface-2) 80%, white); }
+}
+
+/* ---------- Top bar, shared by every page ---------- */
+.bar { position: relative; z-index: 5; display: flex; justify-content: space-between; align-items: center; gap: var(--gutter); padding: 18px var(--margin); }
+.bar__name { display: inline-flex; align-items: center; gap: 10px; font-weight: 600; letter-spacing: -0.03em; font-size: 1.125rem; text-decoration: none; }
+.bar__name img { width: 26px; height: 26px; border-radius: 8px; }
+.bar nav { display: flex; align-items: center; gap: clamp(8px, 1.6vw, 22px); }
+.bar nav a:not(.button) { text-decoration: none; color: var(--ink); opacity: 0.85; font-size: 0.9375rem; font-weight: 500; transition: opacity var(--t-hover) ease; }
+.bar nav a[aria-current='page'] { opacity: 1; text-decoration: underline; text-underline-offset: 0.3em; }
+@media (hover: hover) and (pointer: fine) { .bar nav a:not(.button):hover { opacity: 1; } }
+@media (max-width: 640px) { .bar nav a:not(.button) { display: none; } }
+
+/* ---------- Footer ---------- */
+.foot { padding: clamp(64px, 7vw, 110px) var(--margin) 32px; }
+.foot__name { font-size: var(--step-display); font-weight: 600; letter-spacing: -0.045em; line-height: 0.95; }
+.foot__row { margin-top: clamp(40px, 5vw, 72px); display: flex; flex-wrap: wrap; justify-content: space-between; gap: 18px 32px; align-items: baseline; }
+.foot__links { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: 12px 28px; }
+.foot__links a { text-decoration: none; }
+.foot__note { color: var(--muted); font-size: var(--step-small); }
+@media (hover: hover) and (pointer: fine) { .foot__links a:hover { text-decoration: underline; text-underline-offset: 0.22em; } }

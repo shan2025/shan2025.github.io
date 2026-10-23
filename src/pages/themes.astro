@@ -1,0 +1,48 @@
+---
+// A private page showing the four colour moods the site rotates through, one per visit.
+const moods = [
+  { id: 'ice', name: 'Ice blue', note: 'Cool, technical, AI-forward' },
+  { id: 'amber', name: 'Amber & gold', note: 'Warm, premium, energetic' },
+  { id: 'emerald', name: 'Emerald & teal', note: 'Calm, trustworthy, fintech' },
+  { id: 'mono', name: 'Monochrome', note: 'Minimal, editorial' },
+];
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>Colour moods | Shadin A</title>
+    <link href="https://api.fontshare.com/v2/css?f[]=switzer@400,600&display=swap" rel="stylesheet" />
+    <style>
+      body { margin: 0; background: #111; color: #f4f4f1; font-family: 'Switzer', system-ui, sans-serif; padding: 32px; }
+      h1 { margin: 0 0 6px; font-size: 2rem; letter-spacing: -0.03em; }
+      p.lead { margin: 0 0 28px; color: #a3a3a0; }
+      .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
+      .mood h2 { margin: 12px 0 2px; font-size: 1.25rem; letter-spacing: -0.02em; }
+      .mood p { margin: 0; color: #a3a3a0; }
+      .frame { position: relative; aspect-ratio: 16 / 10; overflow: hidden; border-radius: 16px; background: #000; }
+      .frame iframe { position: absolute; top: 0; left: 0; width: 1440px; height: 900px; border: 0; transform-origin: 0 0; pointer-events: none; }
+      @media (max-width: 800px) { .grid { grid-template-columns: 1fr; } body { padding: 16px; } }
+    </style>
+  </head>
+  <body>
+    <h1>A colour for every visit</h1>
+    <p class="lead">Each visit gets the next one: blue first, then gold, emerald and monochrome, then round again.</p>
+    <div class="grid">
+      {moods.map((m, i) => (
+        <section class="mood">
+          <div class="frame"><iframe src={`/?theme=${m.id}`} title={`Home page in ${m.name}`} loading={i < 2 ? 'eager' : 'lazy'} tabindex="-1"></iframe></div>
+          <h2>{i + 1}. {m.name}</h2>
+          <p>{m.note}</p>
+        </section>
+      ))}
+    </div>
+    <script is:inline>
+      // scale each 1440-wide page to fit its frame
+      const fit = () => document.querySelectorAll('.frame').forEach((f) => { f.querySelector('iframe').style.transform = `scale(${f.clientWidth / 1440})`; });
+      addEventListener('resize', fit); fit();
+    </script>
+  </body>
+</html>

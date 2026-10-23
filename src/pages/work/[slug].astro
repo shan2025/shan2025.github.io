@@ -1,0 +1,34 @@
+---
+import Base from '../../layouts/Base.astro';
+import Bar from '../../components/Bar.astro';
+import WorkFigure from '../../components/WorkFigure.astro';
+import { getCollection } from 'astro:content';
+import '../../styles/inner.css';
+import '../../styles/home.css';
+
+export async function getStaticPaths() {
+  const work = await getCollection('work', ({ data }) => !data.placeholder);
+  return work.map((w) => ({ params: { slug: w.id }, props: { w } }));
+}
+const { w } = Astro.props;
+---
+<Base title={w.data.name} description={w.data.ran}>
+  <Bar slot="header" current="work" />
+  <div class="page">
+    <div class="page__head">
+      <h1 class="page__title">{w.data.name}</h1>
+      <p class="page__intro">{w.data.kind}</p>
+    </div>
+    <div class="case">
+      <div class="case__figure"><WorkFigure id={w.id} /></div>
+      <dl class="case__text">
+        <dt>What ran</dt><dd>{w.data.ran}</dd>
+        <dt>What worked</dt><dd>{w.data.worked}</dd>
+      </dl>
+    </div>
+    <p class="case__links">
+      {w.data.link && <a class="button" href={w.data.link}>{w.data.linkLabel ?? 'Open'}</a>}
+      <a class="button button--ghost" href="/#explore">All projects</a>
+    </p>
+  </div>
+</Base>

@@ -1,0 +1,35 @@
+---
+import Base from '../../layouts/Base.astro';
+import Bar from '../../components/Bar.astro';
+import { getCollection } from 'astro:content';
+import { site } from '../../data/site';
+import '../../styles/inner.css';
+
+const posts = (await getCollection('writing', ({ data }) => !data.draft)).sort(
+  (a, b) => b.data.date.valueOf() - a.data.date.valueOf(),
+);
+const fmt = (d: Date) => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+---
+<Base title="Writing" description="Notes from building FinChat and from growth and product work at Hancod.">
+  <Bar slot="header" current="writing" />
+  <div class="page">
+    <div class="page__head">
+      <h1 class="page__title">Writing</h1>
+      <p class="page__intro">
+        Notes from building in public: what I shipped, what broke, and how I found out.
+        {site.links.substack && <> Also on <a class="link" href={site.links.substack}>Substack</a>.</>}
+      </p>
+    </div>
+    <ul class="index">
+      {posts.map((p) => (
+        <li>
+          <a class="index__row" href={`/writing/${p.id}/`}>
+            <span class="index__title">{p.data.title}</span>
+            <span class="index__excerpt">{p.data.excerpt}</span>
+            <time class="index__date" datetime={p.data.date.toISOString()}>{fmt(p.data.date)}</time>
+          </a>
+        </li>
+      ))}
+    </ul>
+  </div>
+</Base>

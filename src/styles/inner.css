@@ -1,0 +1,61 @@
+/* Inner pages: writing, a single note, a project, résumé. Same dark ground and rounded surfaces as the home page. */
+.page { padding: clamp(40px, 6vw, 100px) var(--margin) var(--section); }
+.page__head { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--gutter); align-items: end; margin-bottom: clamp(40px, 5vw, 80px); }
+.page__title { grid-column: 1 / 8; font-size: var(--step-display); letter-spacing: -0.045em; }
+.page__intro { grid-column: 8 / 13; max-width: 34ch; font-size: var(--step-lead); line-height: 1.3; letter-spacing: -0.015em; color: var(--muted); }
+@media (max-width: 760px) {
+  .page__title, .page__intro { grid-column: 1 / -1; }
+  .page__intro { margin-top: 16px; }
+}
+
+/* the list of notes */
+.index { list-style: none; padding: 0; display: grid; gap: 10px; }
+.index__row { display: grid; grid-template-columns: 6fr 5fr 2fr; gap: var(--gutter); align-items: baseline; padding: clamp(22px, 2.6vw, 34px); background: var(--surface); border-radius: 20px; text-decoration: none; transition: background-color var(--t-hover) ease; }
+.index__title { font-size: var(--step-lead); font-weight: 600; letter-spacing: -0.025em; line-height: 1.2; }
+.index__date { text-align: right; color: var(--muted); font-size: var(--step-small); }
+@media (hover: hover) and (pointer: fine) { .index__row:hover { background: var(--surface-2); } }
+@media (max-width: 760px) { .index__row { grid-template-columns: 1fr; gap: 8px; } .index__date { text-align: left; } }
+
+/* a single note */
+.sheet { max-width: 740px; margin-inline: auto; }
+.sheet__title { font-size: var(--step-head); }
+.sheet__meta { margin-top: 18px; color: var(--muted); font-size: var(--step-small); }
+.prose { margin-top: clamp(32px, 4vw, 48px); display: grid; gap: 1.1em; line-height: 1.7; }
+.prose ul { padding-left: 1.2em; display: grid; gap: 0.4em; }
+.prose a { text-decoration-thickness: 0.07em; text-underline-offset: 0.22em; }
+.sheet__back { margin-top: 48px; }
+
+/* a project */
+.case { display: grid; grid-template-columns: 7fr 5fr; gap: clamp(20px, 3vw, 48px); align-items: start; }
+.case__figure .ui { border-radius: 20px; }
+.case__text { display: grid; gap: 8px; }
+.case__text dt { font-weight: 600; font-size: var(--step-lead); letter-spacing: -0.02em; }
+.case__text dd { margin: 0 0 24px; }
+.case__links { margin-top: 40px; display: flex; flex-wrap: wrap; gap: 10px; }
+@media (max-width: 900px) { .case { grid-template-columns: 1fr; } }
+
+/* résumé */
+.cvs { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.cv { display: grid; gap: 22px; align-content: space-between; min-height: 260px; padding: clamp(24px, 2.8vw, 36px); background: var(--surface); border-radius: 20px; }
+.cv__name { font-size: var(--step-lead); letter-spacing: -0.025em; line-height: 1.15; }
+.cv p { color: var(--muted); }
+.cv .button { justify-self: start; }
+.timeline { margin-top: var(--section); display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--gutter); row-gap: 40px; }
+.timeline__title { grid-column: 1 / 5; font-size: var(--step-head); }
+.timeline__list { grid-column: 6 / 13; list-style: none; padding: 0; display: grid; gap: 36px; }
+.timeline__item h3 { font-size: var(--step-lead); letter-spacing: -0.025em; line-height: 1.2; }
+.timeline__when { color: var(--muted); font-size: var(--step-small); margin-top: 6px; }
+.timeline__item p:last-child { margin-top: 10px; }
+@media (max-width: 860px) {
+  .cvs { grid-template-columns: 1fr; }
+  .timeline__title, .timeline__list { grid-column: 1 / -1; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .js .page__title, .js .sheet__title { animation: in-rise 800ms var(--ease-expo) both; }
+  .js .page__intro, .js .sheet__meta { animation: in-rise 700ms var(--ease-out) 90ms both; }
+  .js .index > li, .js .cv, .js .timeline__item, .js .prose > *, .js .sheet__back, .js .timeline__title, .js .case > *, .js .case__links { animation: in-rise 700ms var(--ease-out) 260ms both; }
+  .js .index > li:nth-child(2), .js .cv:nth-child(2), .js .case > :nth-child(2) { animation-delay: 330ms; }
+  .js .index > li:nth-child(3), .js .cv:nth-child(3) { animation-delay: 400ms; }
+}
+@keyframes in-rise { from { opacity: 0; transform: translateY(16px); } }

@@ -1,0 +1,180 @@
+---
+import Base from '../layouts/Base.astro';
+import Bar from '../components/Bar.astro';
+import WorkFigure from '../components/WorkFigure.astro';
+import { getCollection } from 'astro:content';
+import { site, resumes, interests } from '../data/site';
+import '../styles/home.css';
+
+const work = (await getCollection('work', ({ data }) => !data.placeholder)).sort((a, b) => a.data.order - b.data.order);
+const products = (await getCollection('products', ({ data }) => !data.placeholder)).sort((a, b) => a.data.order - b.data.order);
+const writing = (await getCollection('writing', ({ data }) => !data.draft)).sort(
+  (a, b) => b.data.date.valueOf() - a.data.date.valueOf(),
+);
+const fmt = (d: Date) => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+
+const suggestions = ['What has Shadin built?', 'Tell me about FinChat', 'Is he open to new roles?', 'What did he do at Hancod?'];
+
+// ---- The map of ideas: every node is something real on this site, every link a real connection ----
+type Node = { id: string; label: string; kind: 'core' | 'hub' | 'leaf'; text: string; href: string };
+const nodes: Node[] = [
+  { id: 'me', label: 'Shadin', kind: 'core', text: 'Product and growth at Hancod, and the builder of FinChat.', href: '/resume/' },
+  { id: 'work', label: 'Projects', kind: 'hub', text: 'Three projects, each with what ran and what actually worked.', href: '#explore' },
+  { id: 'writing', label: 'Writing', kind: 'hub', text: 'Notes from building in public.', href: '/writing/' },
+  { id: 'products', label: 'Products', kind: 'hub', text: 'Things you can use or buy.', href: '#explore' },
+  { id: 'interests', label: 'Interests', kind: 'hub', text: 'The fields Shadin follows most closely.', href: '#explore' },
+  { id: 'resume', label: 'Résumé', kind: 'leaf', text: 'Three versions, for product, AI and analyst roles.', href: '/resume/' },
+  ...work.map((w) => ({ id: w.id, label: w.data.name, kind: 'leaf' as const, text: w.data.kind, href: `/work/${w.id}/` })),
+  ...writing.map((p) => ({ id: `post-${p.id}`, label: p.data.title, kind: 'leaf' as const, text: p.data.excerpt, href: `/writing/${p.id}/` })),
+  ...interests.map((i) => ({ id: i.id, label: i.name, kind: 'leaf' as const, text: i.note, href: '#explore' })),
+];
+const links: [string, string, number?][] = [
+  ['me', 'work'], ['me', 'writing'], ['me', 'products'], ['me', 'interests'], ['me', 'resume'],
+  ...work.map((w) => ['work', w.id] as [string, string]),
+  ...writing.map((p) => ['writing', `post-${p.id}`] as [string, string]),
+  ['products', 'finchat'],
+  ...interests.map((i) => ['interests', i.id] as [string, string]),
+  ['finchat', 'agents', 0.3], ['finchat', 'evals', 0.3], ['finchat', 'fintech', 0.3],
+  ['wallet-risk', 'fintech', 0.3], ['wallet-risk', 'evals', 0.3],
+  ['hancod', 'growth', 0.3], ['hancod', 'product', 0.3],
+  ['post-from-blockchain-to-ai-agents', 'finchat', 0.3], ['post-agents-that-report-back', 'finchat', 0.3],
+  ['post-ran-is-not-worked', 'evals', 0.3], ['post-ran-is-not-worked', 'hancod', 0.3],
+];
+const mapData = JSON.stringify({ nodes, links: links.filter(([a, b]) => nodes.some((n) => n.id === a) && nodes.some((n) => n.id === b)) });
+
+const tabs = [
+  { id: 'projects', label: 'Projects' },
+  { id: 'writing', label: 'Writing' },
+  { id: 'products', label: 'Products' },
+  { id: 'map', label: 'Mind map' },
+  { id: 'resume', label: 'Résumé' },
+];
+---
+<Base>
+  <div class="hero">
+    <div class="glow" aria-hidden="true"></div>
+    <Bar />
+    <section class="ask" aria-labelledby="ask-title">
+      <a class="badge" href="/resume/" data-load style="--d:0ms">
+        <span class="badge__dots" aria-hidden="true"><span></span><span></span><span></span></span>
+        Open to product, BA and PM roles
+        <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8h9M8.5 4.5 12 8l-3.5 3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </a>
+      <h1 id="ask-title" class="ask__title" data-load style="--d:80ms">Ask anything about Shadin</h1>
+
+      <div class="chat" id="chat" aria-live="polite" aria-label="Conversation" hidden></div>
+
+      <form class="box" id="ask-form" data-load style="--d:160ms">
+        <label class="sr-only" for="ask-input">Your question about Shadin</label>
+        <textarea id="ask-input" name="q" rows="1" maxlength="1000" placeholder="Ask about his work, FinChat, or the roles he wants…" autocomplete="off"></textarea>
+        <div class="box__row">
+          <button type="button" class="box__icon" id="ask-new" title="New chat" aria-label="Start a new chat">
+            <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><path d="M10 4v12M4 10h12" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+          </button>
+          <span class="box__hint">AI assistant</span>
+          <button type="button" class="box__icon" id="ask-mic" title="Speak your question" aria-label="Speak your question" hidden>
+            <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><rect x="7" y="2.5" width="6" height="10" rx="3" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M4.5 9.5a5.5 5.5 0 0 0 11 0M10 15v2.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+          </button>
+          <button type="submit" class="box__send" id="ask-send" aria-label="Send">
+            <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M9 14V4M4.5 8.5 9 4l4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
+      </form>
+
+      <ul class="chips" id="ask-chips" data-load style="--d:240ms">
+        {suggestions.map((s) => <li><button type="button" class="chip">{s}</button></li>)}
+      </ul>
+      <p class="ask__note" data-load style="--d:300ms">Answers come from Shadin’s own work and résumé, and can be wrong. For anything important, <a class="link" href={`mailto:${site.email}`}>email him</a>.</p>
+    </section>
+
+    <!-- The rest of the site, in a panel rising from the bottom of the glow -->
+    <section class="panel" id="explore" aria-label="Explore Shadin’s work">
+      <div class="panel__head">
+        <div class="tabs" role="tablist" aria-label="Sections">
+          {tabs.map((t, i) => (
+            <button type="button" role="tab" class="tab" id={`tab-${t.id}`} aria-controls={`pane-${t.id}`} aria-selected={i === 0 ? 'true' : 'false'} tabindex={i === 0 ? 0 : -1}>{t.label}</button>
+          ))}
+        </div>
+        <a class="panel__all" href="/writing/">All writing
+          <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8h9M8.5 4.5 12 8l-3.5 3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </a>
+      </div>
+
+      <div class="pane" role="tabpanel" id="pane-projects" aria-labelledby="tab-projects">
+        <ul class="cards">
+          {work.map((w) => (
+            <li>
+              <a class="card" href={`/work/${w.id}/`}>
+                <div class="card__shot"><WorkFigure id={w.id} /></div>
+                <h2 class="card__title">{w.data.name}</h2>
+                <p class="card__meta">{w.data.kind}</p>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <div class="pane" role="tabpanel" id="pane-writing" aria-labelledby="tab-writing">
+        <ul class="cards">
+          {writing.map((p) => (
+            <li>
+              <a class="card card--text" href={`/writing/${p.id}/`}>
+                <h2 class="card__title">{p.data.title}</h2>
+                <p class="card__excerpt">{p.data.excerpt}</p>
+                <p class="card__meta"><time datetime={p.data.date.toISOString()}>{fmt(p.data.date)}</time></p>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <div class="pane" role="tabpanel" id="pane-products" aria-labelledby="tab-products">
+        <div class="product">
+          <div class="product__shot"><WorkFigure id="roster" /></div>
+          {products.map((p) => (
+            <div class="product__text">
+              <h2 class="product__name">{p.data.name}</h2>
+              <p>{p.data.summary}</p>
+              <p class="product__price">{p.data.price}</p>
+              <a class="button" href={p.data.buyUrl}>{p.data.buyLabel}</a>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div class="pane" role="tabpanel" id="pane-map" aria-labelledby="tab-map">
+        <div class="mapwrap">
+          <figure class="map" aria-labelledby="map-label" data-ui>
+            <figcaption class="sr-only" id="map-label">An interactive map of Shadin’s projects, writing, products and interests, and how they connect.</figcaption>
+            <svg class="map__svg" id="map" role="group" aria-label="Map of ideas"></svg>
+            <ul class="map__fallback">{nodes.map((n) => <li><a href={n.href}>{n.label}</a></li>)}</ul>
+          </figure>
+          <aside class="map-card" aria-live="polite">
+            <h2 class="map-card__title" id="map-title">A map of his work</h2>
+            <p class="map-card__text" id="map-text">Click a point to read about it. Drag one point onto another to connect two ideas.</p>
+            <p class="map-card__foot"><a class="link" id="map-link" href="#explore" hidden>Open</a><span id="map-count"></span><button type="button" class="map-card__reset" id="map-reset" hidden>Clear my connections</button></p>
+          </aside>
+        </div>
+        <script type="application/json" id="map-data" set:html={mapData} />
+      </div>
+
+      <div class="pane" role="tabpanel" id="pane-resume" aria-labelledby="tab-resume">
+        <ul class="cards">
+          {resumes.map((r) => (
+            <li>
+              <a class="card card--text" href={r.href} download>
+                <h2 class="card__title">{r.label} résumé</h2>
+                <p class="card__excerpt">{r.note}. One page, PDF.</p>
+                <p class="card__meta">Download</p>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+  </div>
+
+  <script src="../scripts/tabs.js"></script>
+  <script src="../scripts/chat.js"></script>
+  <script src="../scripts/mindmap.js"></script>
+</Base>

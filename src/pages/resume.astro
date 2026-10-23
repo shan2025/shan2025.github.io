@@ -1,0 +1,46 @@
+---
+import Base from '../layouts/Base.astro';
+import Bar from '../components/Bar.astro';
+import { resumes, site } from '../data/site';
+import '../styles/inner.css';
+
+const timeline = [
+  { what: 'Growth Manager Trainee, Hancod', when: 'June 2026 to now', note: 'Own user acquisition and conversion for a live service website, and shape product priorities from market and customer insight.' },
+  { what: 'Business Analyst Intern, Hancod', when: 'March to May 2026', note: 'Wrote FSDs, HFDs and FRDs for 12+ product modules and led testing from scenarios to defect closure.' },
+  { what: 'FinChat, solo product owner and builder', when: '2026, live', note: 'A seven-agent AI platform. After a one-day fix, runs went from 29% successful to 100% over the next 4.5 days; tokens on a benchmark run fell 37%.' },
+  { what: 'MBA, Financial Technology, Pondicherry University', when: '2024 to 2026', note: 'Speaker liaison for TEDx Pondicherry University 2025; student coordinator for BANQUEST 2024.' },
+  { what: 'BCA, Punjab Technical University', when: '2020 to 2023', note: 'Chandigarh Group of Colleges.' },
+];
+---
+<Base title="Résumé" description="Three résumés for Shadin A: product, AI and business analysis, and business analysis.">
+  <Bar slot="header" current="resume" />
+  <div class="page">
+    <div class="page__head">
+      <h1 class="page__title">Résumé</h1>
+      <p class="page__intro">One page, three versions, each led by what that kind of role looks for first.</p>
+    </div>
+    <ul class="cvs">
+      {resumes.map((r) => (
+        <li class="cv">
+          <div>
+            <h2 class="cv__name">{r.label}</h2>
+            <p>{r.note}</p>
+          </div>
+          <a class="button" href={r.href} download>Download PDF</a>
+        </li>
+      ))}
+    </ul>
+    <section class="timeline" aria-labelledby="tl-title">
+      <h2 id="tl-title" class="timeline__title">In short</h2>
+      <ol class="timeline__list">
+        {timeline.map((t) => (
+          <li class="timeline__item">
+            <h3>{t.what}</h3>
+            <p class="timeline__when">{t.when}</p>
+            <p>{t.note}</p>
+          </li>
+        ))}
+      </ol>
+    </section>
+  </div>
+</Base>

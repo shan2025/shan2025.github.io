@@ -1,0 +1,17 @@
+---
+import { site } from '../data/site';
+const year = new Date().getFullYear();
+---
+<footer class="foot">
+  <p class="foot__name">{site.name}</p>
+  <div class="foot__row">
+    <ul class="foot__links">
+      <li><a href={`mailto:${site.email}`}>{site.email}</a></li>
+      <li><a href={site.links.linkedin} rel="me">LinkedIn</a></li>
+      <li><a href={site.links.github} rel="me">GitHub</a></li>
+      <li><a href="/writing/">Writing</a></li>
+      <li><a href="/resume/">Résumé</a></li>
+    </ul>
+    <p class="foot__note">© {year} {site.fullName}, {site.place}</p>
+  </div>
+</footer>

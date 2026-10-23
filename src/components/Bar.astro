@@ -1,0 +1,14 @@
+---
+import { site } from '../data/site';
+interface Props { current?: 'writing' | 'resume' | 'work' }
+const { current } = Astro.props;
+---
+<header class="bar">
+  <a class="bar__name" href="/"><img src="/favicon.svg" alt="" width="26" height="26" />{site.name}</a>
+  <nav aria-label="Main">
+    <a href="/#explore">Projects</a>
+    <a href="/writing/" aria-current={current === 'writing' ? 'page' : undefined}>Writing</a>
+    <a href="/resume/" aria-current={current === 'resume' ? 'page' : undefined}>Résumé</a>
+    <a class="button" href={`mailto:${site.email}`}>Email me</a>
+  </nav>
+</header>
