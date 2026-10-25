@@ -260,16 +260,18 @@ export async function start(root) {
 
   // ---- the game: you against Shadin's AI (chess-ai.js), which plays the way he does where it can ----
   const CHESS_COM = 'lionheartfc'; // Shadin on Chess.com
-  const JOKES = [
-    'Checkmate! I’d ask for a rematch, but my AI is still writing the post-mortem.',
-    'You win. I’ve filed it as a bug: “Pieces did not behave as expected.” Priority: high. Owner: also me.',
-    'Good game. In my defence, my knight was in a meeting.',
-    'You beat my AI. It says it let you win. It also says “it ran” means “it worked”, so I wouldn’t trust it.',
-    'Checkmate. A pawn that reaches the end of the board becomes a queen. I’m still waiting on my promotion.',
-    'Well played! My bishop would like a word, but he only moves diagonally, so it may take a while.',
-    'You won. My AI has asked for more training data. I’ve asked it for fewer excuses.',
-    'That’s mate. Fun fact: my AI learned from my games, so technically you just beat me. Rematch?',
+  // when you win: a line that makes no sense, a "Why?" button, and an answer that makes even less
+  const NONSENSE = [
+    ['Life is like a soap.', 'Nobody knows. Now go away.'],
+    ['Bananas are just yellow boomerangs that gave up.', 'I don’t have to explain myself to a winner. Go away.'],
+    ['Tuesday is basically a cucumber.', 'Because it is. No more questions.'],
+    ['My goldfish has a better LinkedIn than me.', 'It just does. Please leave.'],
+    ['Socks disappear because they’re shy.', 'Nobody knows. Shoo.'],
+    ['A chair is a table that gave up halfway.', 'You won. That’s enough answers for one day. Goodbye.'],
+    ['Every potato is a little bit of a philosopher.', 'I said what I said. Off you go.'],
+    ['Clouds are just the sky’s laundry.', 'Don’t look at me like that. Go away.'],
   ];
+  let why = '';
   const KIND = '// You vs Shadin’s AI · about 850';
   const btn = Object.fromEntries([...root.querySelectorAll('[data-act]')].map((b) => [b.dataset.act, b]));
   const sidesEl = root.querySelector('.board__sides');
@@ -335,7 +337,12 @@ export async function start(root) {
   const over = () => {
     show('over');
     if (game.isCheckmate()) {
-      if (game.turn() !== you) say(KIND, 'You win!', JOKES[Math.floor(Math.random() * JOKES.length)]);
+      if (game.turn() !== you) {
+        const [line, answer] = NONSENSE[Math.floor(Math.random() * NONSENSE.length)];
+        say(KIND, 'You win!', line);
+        why = answer;
+        btn.why.hidden = false;
+      }
       else say(KIND, 'Checkmate', `Shadin’s AI wins with ${lastMove.san}. That’s about how he plays, too. Rematch?`);
     } else {
       say(KIND, 'A draw', game.isStalemate() ? 'Stalemate: no legal move, but no check either. Call it even.'
@@ -374,6 +381,10 @@ export async function start(root) {
     next();
   };
   btn.play.addEventListener('click', () => { if (!busy) chooseColour(); });
+  btn.why.addEventListener('click', () => {
+    card.text.textContent = why;
+    btn.why.hidden = true;
+  });
   btn.again.addEventListener('click', chooseColour);
   btn.white.addEventListener('click', () => startGame('w'));
   btn.black.addEventListener('click', () => startGame('b'));
