@@ -23,8 +23,8 @@ Below the map, a chess set drawn in hairlines, after Lucas Markes's [Hairline](h
 figures (three.js, in `src/scripts/board-scene.js`), holds six sides of the work, one per
 kind of piece: rooks are projects, the queen is AI, bishops are product, pawns are data, knights are growth and the
 king is me. The list, and what each side says, is `boardSides` in `src/pages/index.astro`.
-It sets itself up as you scroll to it (the board settles, the pieces fall onto it one after another), and the
-pieces lift off again if you scroll back, until a game has started.
+It sets itself up as you scroll to it (the board settles, and the pieces fall onto it one after another, out of
+the heading above), and the pieces rise back up as you scroll on past or back, until a game has started.
 
 **Play me** starts a game against my AI (`src/scripts/chess-ai.js`), which plays at roughly 800–900, about my
 Chess.com rapid rating. It plays in my style from `src/data/chess-style.json`: the moves I play in the opening, from

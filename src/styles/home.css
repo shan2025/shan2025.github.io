@@ -165,7 +165,7 @@
 .board__label--tr { top: 14px; right: 16px; }
 .board__label--bl { bottom: 14px; left: 16px; }
 .board__label--br { bottom: 14px; right: 16px; color: var(--ink); }
-.board__canvas { position: absolute; top: -20%; bottom: -20%; left: -16%; right: -16%; width: 132%; height: 140%; pointer-events: none; display: block; }
+.board__canvas { position: absolute; top: -95%; bottom: -20%; left: -16%; right: -16%; width: 132%; height: 215%; pointer-events: none; display: block; } /* up behind the heading: the pieces fall out of it */
 /* the plain list: for no script, or no WebGL */
 .board__list { list-style: none; padding: 0; margin-top: 24px; display: none; gap: 10px; }
 html:not(.js) .board__list, .board.no-3d .board__list { display: grid; }

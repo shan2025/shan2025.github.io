@@ -5,7 +5,7 @@
 // surface turns a corner, nothing filled but the dark squares and the black pieces, faintly, as in a chess diagram.
 // The only colour is the site's accent, on the outline of the piece you point at or pick up.
 // It sets itself up as you scroll to it: the board settles into place and the pieces fall onto it, one after
-// another. Scroll back and they lift off again, until a game has started.
+// another, out of the heading above. Scroll on past and they rise back up into it; until a game has started.
 // Tap a piece to read its side, drag to turn the board any way (underneath, there's a note for the curious), or
 // just move a white piece: that starts a game against Shadin's AI (chess-ai.js, in his style:
 // data/chess-style.json), with the rules kept by chess.js.
@@ -463,24 +463,34 @@ export async function start(root) {
     frameGroup.visible = k > 0.001;
     for (const p of pieces) { // then the pieces fall onto it, one after another, faster as they go
       const e = c01((k - 0.15 - p.delay * 0.65) / 0.2);
-      p.drop = 3 * (1 - e * e);
+      p.drop = fall * (1 - e * e);
       p.mesh.visible = e > 0;
     }
   };
-  const scrolled = () => { // how far the stage has come up the screen: 0 as it appears, 1 once it's well in view
+  const scrolled = () => { // 0 while the stage is off the screen, 1 while it's well in view, either way you scroll
     if (reduced || mode !== 'explore') return 1; // once a game has started, it stays together
-    return c01((innerHeight - stage.getBoundingClientRect().top) / (innerHeight * 0.55));
+    const r = stage.getBoundingClientRect();
+    const coming = (innerHeight - r.top) / (innerHeight * 0.55); // up from the bottom of the screen
+    const going = r.bottom / (innerHeight * 0.5); // out at the top
+    return c01(Math.min(coming, going));
   };
 
   // ---- size: the board sits in the middle of its canvas, sized to the stage ----
   const toCamera = new THREE.Vector3();
   const EL = Math.asin(0.5); // the 2:1 view of an isometric figure
+  const heading = root.querySelector('.board__heading');
+  let fall = 3; // how high the pieces fall from: the heading's height above the board
   const resize = () => {
     const w = canvas.clientWidth, h = canvas.clientHeight;
     if (!w || !h) return;
     renderer.setSize(w, h, false);
     const unit = Math.min(stage.clientWidth * 0.84 / 12.8, stage.clientHeight * 0.92 / 8); // pixels per square; 12.8 is the board's diagonal, so it fits turned any way
-    Object.assign(camera, { left: -w / 2 / unit, right: w / 2 / unit, top: h / 2 / unit, bottom: -h / 2 / unit });
+    // the canvas reaches far up behind the heading, so the view is shifted to keep the board in the middle of the stage
+    const cr = canvas.getBoundingClientRect(), sr = stage.getBoundingClientRect(), hr = heading.getBoundingClientRect();
+    const dy = sr.top + sr.height / 2 - (cr.top + cr.height / 2);
+    Object.assign(camera, { left: -w / 2 / unit, right: w / 2 / unit, top: (h / 2 + dy) / unit, bottom: -(h / 2 - dy) / unit });
+    fall = Math.max(3, (sr.top + sr.height / 2 - (hr.top + hr.height / 2)) / (Math.cos(EL) * unit));
+    settled = -1;
     camera.position.set(0, Math.sin(EL), Math.cos(EL)).multiplyScalar(30);
     camera.lookAt(0, 0.2, 0);
     camera.updateProjectionMatrix();
