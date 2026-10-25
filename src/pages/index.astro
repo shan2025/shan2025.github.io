@@ -147,30 +147,26 @@ const tabs = [
       <div class="board__head">
         <p class="board__tag">// 03 &nbsp;The board</p>
         <h2 id="board-heading" class="board__heading">Every side of my work</h2>
-        <p class="board__intro">Six kinds of piece, six sides of my work. Tap a piece to read about it, drag to turn the board, or play a game against my AI. It plays like me.</p>
+        <p class="board__intro">Six kinds of piece, six sides of my work. Tap a piece to read about it, turn the board any way you like, or just make a move: my AI plays like me.</p>
       </div>
       <div class="board__body">
-        <div class="board__stage" aria-label="A chess board of Shadin’s work. Drag to turn it, tap a piece to read it, or play a game against his AI.">
+        <div class="board__stage" aria-label="A chess board of Shadin’s work. Drag to turn it, tap a piece to read it, or move a white piece to play his AI.">
           <canvas class="board__canvas" aria-hidden="true"></canvas>
           <p class="board__tip" aria-hidden="true" hidden></p>
         </div>
         <aside class="board__card" aria-live="polite">
           <p class="board__kind">How it works</p>
-          <h3 class="board__title">Pick a piece</h3>
-          <p class="board__text">Each kind of piece is one side of my work: the rooks are my projects, the queen is AI, the king is me. Tap one, pick a side below, or play me.</p>
+          <h3 class="board__title">Make a move</h3>
+          <p class="board__text">Each kind of piece is one side of my work: the rooks are my projects, the queen is AI, the king is me. Tap one to read it, or move a white piece to play my AI.</p>
           <ul class="board__items" hidden></ul>
           <a class="button board__link" href="#board" hidden>Open</a>
           <div class="board__sides" role="group" aria-label="Sides of my work">
             {boardSides.map((s) => <button type="button" class="board__side" data-piece={s.piece} aria-pressed="false"><span class="board__glyph" aria-hidden="true">{s.glyph}</span>{s.name}</button>)}
           </div>
           <p class="board__controls">
-            <button type="button" class="board__btn board__btn--go" data-act="play" disabled>Play me</button>
-            <button type="button" class="board__btn" data-act="white" hidden>Play white</button>
-            <button type="button" class="board__btn" data-act="black" hidden>Play black</button>
-            <button type="button" class="board__btn" data-act="resign" hidden>Resign</button>
             <button type="button" class="board__btn board__btn--go" data-act="why" hidden>Why?</button>
             <button type="button" class="board__btn" data-act="again" hidden>Play again</button>
-            <button type="button" class="board__btn" data-act="leave" hidden>Back to the board</button>
+            <button type="button" class="board__btn" data-act="resign" hidden>Resign</button>
           </p>
         </aside>
       </div>

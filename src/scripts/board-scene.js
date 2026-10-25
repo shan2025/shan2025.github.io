@@ -2,8 +2,9 @@
 // projects, the queen is AI, the king is me, and so on; the list lives in index.astro). It's drawn on a
 // see-through canvas that reaches a little past its stage. The board sits on a wooden table that fades into the
 // page; pieces taken in a game stand on the table beside it. No glows or highlights: a piece you pick up lifts.
-// Tap a piece to read its side, or drag to turn the board. Or play it: "Play me" starts a game against Shadin's
-// AI (chess-ai.js, about 850, in his style: data/chess-style.json), with the rules kept by chess.js.
+// Tap a piece to read its side, drag to turn the board any way (underneath, there's a note for the curious), or
+// just move a white piece: that starts a game against Shadin's AI (chess-ai.js, about 850, in his style:
+// data/chess-style.json), with the rules kept by chess.js.
 
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
@@ -121,10 +122,12 @@ export async function start(root) {
   sun.shadow.radius = 4;
   world.add(sun, new THREE.HemisphereLight(0xfff6ea, 0x2a2420, 0.35));
 
-  const turnGroup = new THREE.Group(); // dragging turns this about the vertical
+  const tiltGroup = new THREE.Group(); // dragging up and down tips this over
+  const turnGroup = new THREE.Group(); // dragging across turns this about the vertical
   const boardGroup = new THREE.Group();
   turnGroup.add(boardGroup);
-  world.add(turnGroup);
+  tiltGroup.add(turnGroup);
+  world.add(tiltGroup);
   const satin = (map, extra = {}) => new THREE.MeshPhysicalMaterial({ map, roughness: 0.55, clearcoat: 0.35, clearcoatRoughness: 0.35, ...extra }); // waxed wood, not gloss
   const body = new THREE.Mesh(new RoundedBoxGeometry(TOP + 0.16, 0.42, TOP + 0.16, 4, 0.08), satin(texture(FRAME, 1, Math.PI / 2), { envMapIntensity: 0.45 }));
   body.position.y = -0.21;
@@ -150,7 +153,29 @@ export async function start(root) {
     m.receiveShadow = true;
     return m;
   })();
-  boardGroup.add(table, body, top);
+  // underneath: green baize, and a note for whoever turns it over
+  const felt = (() => {
+    const S = 1024, c = document.createElement('canvas');
+    c.width = c.height = S;
+    const g = c.getContext('2d'), img = g.createImageData(S, S);
+    for (let i = 0; i < S * S; i++) {
+      const v = Math.random() * 14;
+      img.data[i * 4] = 28 + v; img.data[i * 4 + 1] = 62 + v; img.data[i * 4 + 2] = 46 + v; img.data[i * 4 + 3] = 255;
+    }
+    g.putImageData(img, 0, 0);
+    g.fillStyle = 'rgba(232,210,160,0.85)';
+    g.textAlign = 'center';
+    g.textBaseline = 'middle';
+    g.font = '600 76px Switzer, system-ui, sans-serif';
+    g.fillText('Too curious, aren’t you?', S / 2, S / 2 - 30);
+    g.font = '500 34px Switzer, system-ui, sans-serif';
+    g.fillText('The game is on the other side.', S / 2, S / 2 + 50);
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(TOP, TOP), new THREE.MeshStandardMaterial({ map: texture(c), roughness: 1 }));
+    m.rotation.x = Math.PI / 2; // facing down; its writing reads the right way up once the board is turned over
+    m.position.y = -0.423;
+    return m;
+  })();
+  boardGroup.add(table, body, top, felt);
 
   // ---- the pieces: turned on a lathe (profiles are [radius, height]), with crowns, crosses and a carved knight ----
   const arc = (cy, r, a0, a1, n = 10) => Array.from({ length: n + 1 }, (_, i) => {
@@ -215,7 +240,9 @@ export async function start(root) {
     kind: root.querySelector('.board__kind'), title: root.querySelector('.board__title'), text: root.querySelector('.board__text'),
     items: root.querySelector('.board__items'), link: root.querySelector('.board__link'),
   };
-  const say = (kind, title, text, list = null) => {
+  let said = [card.kind.textContent, card.title.textContent, card.text.textContent], peeking = false; // what the card last said, to put back after a look underneath
+  const say = (...args) => { said = args; if (!peeking) write(...args); };
+  const write = (kind, title, text, list = null) => {
     card.kind.textContent = kind;
     card.title.textContent = title;
     card.text.textContent = text;
@@ -236,6 +263,7 @@ export async function start(root) {
   const pickSide = (type) => {
     const s = sideOf[type];
     picked = type;
+    sel = null;
     say(`// ${s.pieceName}`, s.name, s.text, s.items);
     root.querySelectorAll('.board__side').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.piece === type)));
     wake();
@@ -257,8 +285,9 @@ export async function start(root) {
   const pieceOn = (name) => pieces.find((p) => p.sq && nameOf(p.sq) === name);
   const colourOf = (p) => (p.white ? 'w' : 'b');
 
-
-  // ---- the game: you against Shadin's AI (chess-ai.js), which plays the way he does where it can ----
+  // ---- the game: you against Shadin's AI (chess-ai.js), which plays the way he does ----
+  // There's always a game waiting: move a white piece and it starts. Before that, any piece you touch tells you
+  // its side of the work.
   // when you win: a line that makes no sense, a "Why?" button, and an answer that makes even less
   const NONSENSE = [
     ['Life is like a soap.', 'Nobody knows. Now go away.'],
@@ -272,18 +301,19 @@ export async function start(root) {
   ];
   let why = '';
   const KIND = '// You vs Shadin’s AI · about 850';
+  const you = 'w'; // you play white: your pieces start nearest you
   const btn = Object.fromEntries([...root.querySelectorAll('[data-act]')].map((b) => [b.dataset.act, b]));
   const sidesEl = root.querySelector('.board__sides');
   const intro = [card.kind.textContent, card.title.textContent, card.text.textContent];
-  let mode = 'explore', game = null, you = 'w', brain = null, sel = null, lastMove = null;
-  let reading = null; // his games (data/chess-style.json), read the first time someone wants to play
+  let mode = 'explore', game = new Chess(), brain = null, sel = null, lastMove = null;
+  let reading = null; // his games (data/chess-style.json), read once the board is up
   const readBrain = () => (reading ||= import('../data/chess-style.json').then((m) => { brain = m.default; }).catch(() => { brain = {}; }));
-  let busy = true, thinking = false, yawAim = null; // busy until the pieces have landed, and while they're being set up
-  const show = (m) => { // which buttons each moment needs
+  let busy = true, thinking = false;
+  const show = (m) => { // explore: no move made yet; game: under way; over: a result on the card
     mode = m;
-    const want = { explore: ['play'], choose: ['white', 'black', 'leave'], game: ['resign'], over: ['again', 'leave'] }[m];
-    for (const [k, b] of Object.entries(btn)) b.hidden = !want.includes(k);
-    btn.play.disabled = busy;
+    btn.resign.hidden = m !== 'game';
+    btn.again.hidden = m !== 'over';
+    btn.why.hidden = true;
     sidesEl.hidden = m !== 'explore';
   };
   const setUpAgain = () => Promise.all(pieces.map((p) => {
@@ -294,12 +324,21 @@ export async function start(root) {
   const taken = { w: 0, b: 0 };
   // pieces you take stand on the table to your right of the board; pieces it takes, to its right
   const besideBoard = (p) => {
-    const c = colourOf(p), i = taken[c]++;
-    const side = (c !== you ? 1 : -1) * (you === 'w' ? 1 : -1);
+    const c = colourOf(p), i = taken[c]++, side = c !== you ? 1 : -1;
     return new THREE.Vector3(side * (5.25 + Math.floor(i / 8) * 0.75), TABLE, side * ((i % 8) - 3.5) * 0.85);
   };
   const select = (p) => { sel = p; wake(); };
+  const readSide = (type, yours) => {
+    const s = sideOf[type];
+    picked = null;
+    say(`// ${s.pieceName}`, s.name, yours ? `${s.text} Move it to start a game against my AI.` : s.text, s.items);
+  };
   const play = async (move) => {
+    if (mode === 'explore') { // your first move starts the game
+      show('game');
+      picked = null;
+      root.querySelectorAll('.board__side').forEach((b) => b.setAttribute('aria-pressed', 'false'));
+    }
     const m = game.move(move);
     const p = pieceOn(m.from), steps = [], ms = reduced ? 0 : 560;
     sel = null;
@@ -325,14 +364,18 @@ export async function start(root) {
     if (mode !== 'game') return;
     if (game.isGameOver()) return over();
     if (game.turn() === you) {
-      say(KIND, game.inCheck() ? 'Check! Your move' : 'Your move', lastMove ? `Shadin’s AI played ${lastMove.san}.` : 'You’re white, so you start. Tap a piece, then a square.');
+      say(KIND, game.inCheck() ? 'Check! Your move' : 'Your move', `Shadin’s AI played ${lastMove.san}.`);
       return;
     }
     thinking = true;
-    say(KIND, 'Thinking…', lastMove ? `You played ${lastMove.san}.` : 'Shadin’s AI is white, so it starts.');
-    setTimeout(() => {
+    const first = game.history().length === 1;
+    say(KIND, first ? 'Game on' : 'Thinking…', first
+      ? `You played ${lastMove.san}. My AI learned from ${brain?.games ? `${brain.games.toLocaleString('en')} of my games` : 'my games'} on Chess.com and plays like me, at about my level: 800–900.`
+      : `You played ${lastMove.san}.`);
+    setTimeout(async () => {
+      await readBrain();
       thinking = false;
-      if (mode === 'game') play(choose(game, brain || {}));
+      if (mode === 'game') play(choose(game, brain));
     }, reduced ? 50 : 450 + Math.random() * 600);
   };
   const over = () => {
@@ -343,8 +386,7 @@ export async function start(root) {
         say(KIND, 'You win!', line);
         why = answer;
         btn.why.hidden = false;
-      }
-      else say(KIND, 'Checkmate', `Shadin’s AI wins with ${lastMove.san}. That’s about how he plays, too. Rematch?`);
+      } else say(KIND, 'Checkmate', `Shadin’s AI wins with ${lastMove.san}. That’s about how he plays, too. Play again?`);
     } else {
       say(KIND, 'A draw', game.isStalemate() ? 'Stalemate: no legal move, but no check either. Call it even.'
         : game.isThreefoldRepetition() ? 'The same position three times. Call it even.'
@@ -352,54 +394,26 @@ export async function start(root) {
         : 'Fifty moves without a capture or a pawn move. Call it even.');
     }
   };
-  const chooseColour = () => {
-    picked = null;
-    root.querySelectorAll('.board__side').forEach((b) => b.setAttribute('aria-pressed', 'false'));
-    show('choose');
-    const ready = () => (brain?.games
-      ? `My AI learned from ${brain.games.toLocaleString('en')} of my games on Chess.com and plays at my level, about 800–900. It plays like me: ${brain.openings.white} as white, ${brain.openings.black} as black, plenty of checks, and castling kingside.`
-      : 'My AI plays at about my level, 800–900.');
-    say('// Play me', 'Pick a colour', ready());
-    readBrain().then(() => { if (mode === 'choose') say('// Play me', 'Pick a colour', ready()); });
-    wake();
-  };
-  const startGame = async (colour) => {
-    you = colour;
-    game = new Chess();
-    lastMove = sel = null;
-    taken.w = taken.b = 0;
-    busy = true;
-    show('game');
-    yawAim = colour === 'w' ? 0 : Math.PI; // your side nearest you
-    yawV = 0;
-    say(KIND, 'Setting up…', colour === 'w' ? 'You’re white.' : 'You’re black.');
-    await Promise.all([setUpAgain(), readBrain()]);
-    busy = false;
-    next();
-  };
-  btn.play.addEventListener('click', () => { if (!busy) chooseColour(); });
   btn.why.addEventListener('click', () => {
-    card.text.textContent = why;
+    said[2] = why;
+    if (!peeking) card.text.textContent = why;
     btn.why.hidden = true;
   });
-  btn.again.addEventListener('click', chooseColour);
-  btn.white.addEventListener('click', () => startGame('w'));
-  btn.black.addEventListener('click', () => startGame('b'));
   btn.resign.addEventListener('click', () => {
     if (mode !== 'game') return;
     show('over');
     say(KIND, 'You resigned', 'Shadin’s AI takes this one. It’s only about 850, so you’ll get it next time.');
   });
-  btn.leave.addEventListener('click', async () => {
-    game = null;
-    sel = null;
+  btn.again.addEventListener('click', async () => {
+    game = new Chess();
+    sel = lastMove = null;
+    taken.w = taken.b = 0;
     busy = true;
     show('explore');
     say(...intro);
-    yawAim = 0;
+    viewAim = { yaw: 0, pitch: 0 }; // white back in front of you
     await setUpAgain();
     busy = false;
-    show('explore');
   });
 
   // ---- pointing, dragging and tapping (on the stage; the canvas itself takes no clicks) ----
@@ -422,7 +436,7 @@ export async function start(root) {
     return f >= 0 && f < 8 && r >= 0 && r < 8 ? nameOf([f, r]) : null;
   };
   const tap = (e) => {
-    if (!game || mode !== 'game' || busy || thinking || moving.length || game.turn() !== you) return;
+    if (mode === 'over' || busy || thinking || moving.length || game.turn() !== you) return;
     const p = hit(e), target = squareAt(e);
     const legal = sel ? game.moves({ square: nameOf(sel.sq), verbose: true }).filter((x) => !x.promotion || x.promotion === 'q') : [];
     const to = (name) => legal.find((x) => x.to === name);
@@ -435,7 +449,10 @@ export async function start(root) {
     const mine = (q) => q && q.sq && colourOf(q) === you;
     const canMove = (q) => game.moves({ square: nameOf(q.sq) }).length > 0;
     const pick = mine(p) ? (!canMove(p) && mine(under) && canMove(under) ? under : p) : mine(under) ? under : null;
-    if (sel && !pick && target) say(KIND, 'Your move', `Your ${NAMES[sel.type].toLowerCase()} can’t go to ${target}. Pick a piece, then a square.`);
+    if (mode === 'explore') { // before the game, every piece also tells you its side of the work
+      const read = pick || (p && p.sq ? p : null);
+      if (read) readSide(read.type, read === pick);
+    } else if (sel && !pick && target) say(KIND, 'Your move', `Your ${NAMES[sel.type].toLowerCase()} can’t go to ${target}. Pick a piece, then a square.`);
     select(pick && pick !== sel ? pick : null);
   };
   let from = null, moved = 0, hovered = null, built = false;
@@ -449,20 +466,23 @@ export async function start(root) {
     tip.hidden = !(p && mode === 'explore');
     if (p === hovered) return;
     hovered = p;
-    stage.classList.toggle('is-pointing', !!p && (mode === 'explore' || mode === 'game'));
+    stage.classList.toggle('is-pointing', !!p && mode !== 'over');
     wake();
   };
-  let yaw = 0, yawV = 0;
+  // dragging turns the board any way: across spins it round, up and down tips it over (all the way, if you like)
+  let yaw = 0, yawV = 0, pitch = 0, viewAim = null;
+  const wrap = (a) => a - Math.PI * 2 * Math.round(a / (Math.PI * 2));
   stage.addEventListener('pointerdown', (e) => { from = [e.clientX, e.clientY]; moved = 0; });
   addEventListener('pointermove', (e) => {
     if (from) {
-      const dx = e.clientX - from[0];
-      moved += Math.abs(dx) + Math.abs(e.clientY - from[1]);
+      const dx = e.clientX - from[0], dy = e.clientY - from[1];
+      moved += Math.abs(dx) + Math.abs(dy);
       from = [e.clientX, e.clientY];
       if (moved < 6) return; // still a tap
       yaw += dx * 0.008;
       yawV = dx * 0.008;
-      yawAim = null;
+      pitch = wrap(pitch + dy * 0.008);
+      viewAim = null;
       point(null);
       wake();
       return;
@@ -474,13 +494,7 @@ export async function start(root) {
   });
   stage.addEventListener('pointerleave', () => point(null));
   addEventListener('pointerup', (e) => {
-    if (from && moved < 6 && built) {
-      if (mode === 'game') tap(e);
-      else if (mode === 'explore') {
-        const p = hit(e);
-        if (p) pickSide(p.type);
-      }
-    }
+    if (from && moved < 6 && built) tap(e);
     from = null;
   });
   addEventListener('pointercancel', () => { from = null; });
@@ -489,9 +503,11 @@ export async function start(root) {
     built = true;
     busy = false;
     show('explore');
+    setTimeout(readBrain, 1500); // his games, ready before anyone's first move
   };
 
   // ---- size: the board sits in the middle of its canvas, sized to the stage ----
+  const toCamera = new THREE.Vector3();
   const resize = () => {
     const w = canvas.clientWidth, h = canvas.clientHeight;
     if (!w || !h) return;
@@ -500,6 +516,7 @@ export async function start(root) {
     camera.position.set(0, 12, 11); // high enough that pieces don't hide the ones behind them
     camera.lookAt(0, -0.4, 0);
     camera.updateProjectionMatrix();
+    toCamera.copy(camera.position).normalize();
     const unitPx = (2 * camera.position.length() * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2))) / h; // world units per pixel
     const size = Math.min(stage.clientWidth * 0.84, stage.clientHeight * 1.1) * unitPx;
     turnGroup.scale.setScalar(size / TOP);
@@ -514,15 +531,29 @@ export async function start(root) {
     const dt = Math.min(0.05, (now - last) / 1000);
     last = now;
     if (!from) { yaw += yawV; yawV *= 0.9; if (Math.abs(yawV) < 1e-4) yawV = 0; } // a flick keeps turning, then slows
-    if (yawAim !== null && !from) { // turning to face a side: the nearest way round
-      const target = yawAim + Math.PI * 2 * Math.round((yaw - yawAim) / (Math.PI * 2));
-      yaw += (target - yaw) * Math.min(1, dt * 6);
-      if (Math.abs(target - yaw) < 1e-3) { yaw = target; yawAim = null; }
+    if (viewAim && !from) { // back to the usual view: the nearest way round
+      const target = viewAim.yaw + Math.PI * 2 * Math.round((yaw - viewAim.yaw) / (Math.PI * 2)), k = Math.min(1, dt * 6);
+      yaw += (target - yaw) * k;
+      pitch += (viewAim.pitch - pitch) * k;
+      yawV = 0;
+      if (Math.abs(target - yaw) < 1e-3 && Math.abs(pitch - viewAim.pitch) < 1e-3) { yaw = target; pitch = viewAim.pitch; viewAim = null; }
     }
     turnGroup.rotation.y = yaw;
+    tiltGroup.rotation.x = pitch;
+    table.material.opacity = Math.max(0, 1 - Math.abs(pitch) / 0.3); // lift the board off the table and the table goes
+    table.visible = table.material.opacity > 0.01;
+    // turned far enough over that you're looking at the bottom?
+    const facing = toCamera.y * Math.cos(pitch) + toCamera.z * Math.sin(pitch);
+    if (facing < -0.15 && !peeking) {
+      peeking = true;
+      write('// Hey', 'Too curious, aren’t you?', 'Nothing under here but felt. The game is on the other side.');
+    } else if (facing > 0.05 && peeking) {
+      peeking = false;
+      write(...said);
+    }
     let springing = false;
     for (const p of pieces) { // the picked kind (or, in a game, the piece in hand) is lifted off the board
-      const up = mode === 'explore' ? picked === p.type : sel === p;
+      const up = sel === p || (mode === 'explore' && picked === p.type);
       const want = up ? 0.15 : 0;
       p.liftV += (160 * (want - p.lift) - 17 * p.liftV) * dt;
       p.lift += p.liftV * dt;
@@ -536,7 +567,7 @@ export async function start(root) {
     }
     for (const p of pieces) if (!moving.some((m) => m.p === p)) p.mesh.position.y = p.y0 + p.lift;
     renderer.render(world, camera);
-    const busyFrame = moving.length || springing || yawV || yawAim !== null;
+    const busyFrame = moving.length || springing || yawV || viewAim;
     if (near && !document.hidden && busyFrame) raf = requestAnimationFrame(frame);
   };
   function wake() { if (!raf && near && !document.hidden) { last = performance.now(); raf = requestAnimationFrame(frame); } }
