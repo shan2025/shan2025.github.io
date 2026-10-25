@@ -357,7 +357,7 @@ export async function start(root) {
     root.querySelectorAll('.board__side').forEach((b) => b.setAttribute('aria-pressed', 'false'));
     show('choose');
     const ready = () => (brain?.games
-      ? `My AI learned from ${brain.games.toLocaleString('en')} of my games on Chess.com and plays at my level, about 800–900. It opens like me (${brain.openings.white}; as black, ${brain.openings.black}) and keeps my habits: plenty of checks, and castling kingside.`
+      ? `My AI learned from ${brain.games.toLocaleString('en')} of my games on Chess.com and plays at my level, about 800–900. It plays like me: ${brain.openings.white} as white, ${brain.openings.black} as black, plenty of checks, and castling kingside.`
       : 'My AI plays at about my level, 800–900.');
     say('// Play me', 'Pick a colour', ready());
     readBrain().then(() => { if (mode === 'choose') say('// Play me', 'Pick a colour', ready()); });

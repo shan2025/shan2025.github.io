@@ -70,10 +70,12 @@ const weighted = (counts) => {
 export function choose(game, brain = {}) {
   const sign = game.turn() === 'w' ? 1 : -1, ply = game.history().length;
   const legal = game.moves({ verbose: true });
-  // his openings first: if Shadin has had this position, mostly play what he played there
+  // his openings first: if Shadin has had this position, play what he played there; nearly always where it's
+  // a habit (five games or more), a little less where he's only been there once or twice
   const seen = brain.book?.[game.fen().split(' ').slice(0, 4).join(' ')];
-  if (seen && Math.random() < 0.9) {
-    const m = legal.find((x) => x.san === weighted(seen));
+  const times = seen ? Object.values(seen).reduce((a, b) => a + b, 0) : 0;
+  if (seen && Math.random() < (times >= 5 ? 0.97 : 0.85)) {
+    const san = weighted(seen), m = legal.find((x) => x.san === san);
     if (m) return m;
   }
   const style = { capture: 0, check: 0, earlyQueen: 0, flank: 0, castle: 15, castleSide: 0.8, pieces: {}, ...brain.style };

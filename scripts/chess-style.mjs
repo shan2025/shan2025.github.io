@@ -93,13 +93,20 @@ const pct = (n, of) => Math.round((100 * n) / of);
 const whiteTotal = Object.values(firsts.w).reduce((a, b) => a + b, 0);
 const [whiteMove, whiteN] = top(firsts.w)[0] || ['', 0];
 const e4 = firsts.b.e4 ? top(firsts.b.e4)[0] : null, d4 = firsts.b.d4 ? top(firsts.b.d4)[0] : null;
+// his answer to 1...d5 after 1.d4: 2.c4 is the Queen's Gambit
+const queensPawn = new Chess();
+queensPawn.move('d4');
+queensPawn.move('d5');
+const afterD5 = book[key(queensPawn.fen())];
+const gambit = whiteMove === 'd4' && afterD5 && top(afterD5)[0][0] === 'c4';
 ratings.sort((a, b) => (a.date < b.date ? -1 : 1));
 const out = {
   games: used,
   rating: ratings.length ? { latest: ratings.at(-1).elo, peak: Math.max(...ratings.map((r) => r.elo)) } : null,
   openings: {
-    white: whiteMove ? `1.${whiteMove} in ${pct(whiteN, whiteTotal)}% of my games as white` : '',
-    black: [e4 && `1.e4 ${e4[0]}`, d4 && `1.d4 ${d4[0]}`].filter(Boolean).join(', '),
+    white: gambit ? 'the Queen’s Gambit (1.d4 d5 2.c4)' : whiteMove ? `1.${whiteMove}` : '',
+    whiteShare: pct(whiteN, whiteTotal), // how often he opens with that first move as white
+    black: [e4 && `1.e4 ${e4[0]}`, d4 && `1.d4 ${d4[0]}`].filter(Boolean).join(' and '),
   },
   style,
   book,
