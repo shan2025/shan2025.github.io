@@ -1,7 +1,8 @@
 // Shadin's chess AI, for the board on the home page. It plays at roughly 800–900: it looks two moves ahead
 // (its move and your reply), adds a little noise, and now and then doesn't look at your reply at all, which is
-// how it hangs a piece or grabs a poisoned pawn. Where it can, it plays the way Shadin does: learn() reads his
-// recent public games on Chess.com, so it opens with the moves he plays and leans towards his habits.
+// how it hangs a piece or grabs a poisoned pawn. Where it can, it plays the way Shadin does: its brain is
+// src/data/chess-style.json, made by scripts/chess-style.mjs from his games on Chess.com, with the moves he plays
+// in the opening and how his habits differ from his opponents' (more checks, kingside castling, and so on).
 // The search uses chess.js's internal move functions (_moves, _makeMove, _undoMove, _board): the public ones work
 // out notation for every move and are about ten times slower. That's why package.json pins chess.js exactly.
 
@@ -38,7 +39,7 @@ const evaluate = (game) => {
   }
   return s;
 };
-const CASTLE = 32 | 64; // chess.js's flag bits for castling either side
+const CASTLE = 32 | 64; // chess.js's flag bits for castling: 32 short, 64 long
 const square = (i) => 'abcdefgh'[i & 15] + (8 - (i >> 4));
 
 // negamax with alpha-beta, scored for the side to move
@@ -65,17 +66,17 @@ const weighted = (counts) => {
   return entries[0]?.[0];
 };
 
-// the move to play, for the side to move. brain is what learn() found: { book, style }
+// the move to play, for the side to move. brain is chess-style.json: { book, style }
 export function choose(game, brain = {}) {
-  const me = game.turn(), sign = me === 'w' ? 1 : -1, history = game.history();
+  const sign = game.turn() === 'w' ? 1 : -1, ply = game.history().length;
   const legal = game.moves({ verbose: true });
-  // his openings first: if Shadin has been here, mostly play what he played
-  const seen = brain.book?.[me]?.[history.join(' ')];
-  if (seen && Math.random() < 0.85) {
+  // his openings first: if Shadin has had this position, mostly play what he played there
+  const seen = brain.book?.[game.fen().split(' ').slice(0, 4).join(' ')];
+  if (seen && Math.random() < 0.9) {
     const m = legal.find((x) => x.san === weighted(seen));
     if (m) return m;
   }
-  const style = { capture: 0, check: 0, earlyQueen: 0, castle: 15, ...brain.style };
+  const style = { capture: 0, check: 0, earlyQueen: 0, flank: 0, castle: 15, castleSide: 0.8, pieces: {}, ...brain.style };
   const careless = Math.random() < 0.12; // this move, it doesn't look at your reply
   const think = new Chess(game.fen()); // a copy to search on, so the real game is never touched
   let best = null, bestScore = -Infinity;
@@ -88,66 +89,13 @@ export function choose(game, brain = {}) {
     // his habits, as a nudge
     if (m.captured) score += style.capture;
     if (check) score += style.check;
-    if (m.piece === 'q' && history.length < 20) score += style.earlyQueen;
-    if (m.flags & CASTLE) score += style.castle;
+    if (m.piece === 'q' && ply < 20) score += style.earlyQueen;
+    if (m.piece === 'p' && ply < 20 && [0, 1, 6, 7].includes(m.from & 15)) score += style.flank; // a, b, g and h pawns
+    if (m.flags & CASTLE) score += style.castle * (m.flags & 32 ? style.castleSide : 1 - style.castleSide);
+    score += style.pieces[m.piece] || 0;
     score += gauss() * 45;
     if (score > bestScore) { bestScore = score; best = m; }
   }
   const from = square(best.from), to = square(best.to);
   return legal.find((x) => x.from === from && x.to === to && (x.promotion || null) === (best.promotion || null)) || legal[0];
-}
-
-const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
-
-// read a player's recent public games on Chess.com: the moves they open with, from either side, and how often
-// they capture, check, bring the queen out early and castle. Kept for the visit, so it only reads once.
-export async function learn(user, { months = 3, max = 150 } = {}) {
-  const key = `chess-brain-${user.toLowerCase()}`;
-  try {
-    const kept = sessionStorage.getItem(key);
-    if (kept) return JSON.parse(kept);
-  } catch {}
-  const get = (url) => fetch(url).then((r) => { if (!r.ok) throw new Error(String(r.status)); return r.json(); });
-  const { archives = [] } = await get(`https://api.chess.com/pub/player/${user.toLowerCase()}/games/archives`);
-  const monthly = await Promise.all(archives.slice(-months).map((u) => get(u).catch(() => ({ games: [] }))));
-  const games = monthly.flatMap((m) => m.games || []).filter((g) => g.rules === 'chess' && g.pgn).slice(-max);
-  const book = { w: {}, b: {} }, n = { games: 0, moves: 0, captures: 0, checks: 0, earlyQueen: 0, castled: 0 };
-  const replay = new Chess();
-  for (const [i, g] of games.entries()) {
-    try { replay.loadPgn(g.pgn); } catch { continue; }
-    const me = g.white?.username?.toLowerCase() === user.toLowerCase() ? 'w' : 'b';
-    const sans = [];
-    let castled = false;
-    for (const [ply, m] of replay.history({ verbose: true }).entries()) {
-      if (m.color === me) {
-        if (ply < 14) {
-          const here = (book[me][sans.join(' ')] ||= {});
-          here[m.san] = (here[m.san] || 0) + 1;
-        }
-        n.moves++;
-        if (m.captured) n.captures++;
-        if (m.san.includes('+')) n.checks++;
-        if (m.piece === 'q' && ply < 20) n.earlyQueen++;
-        if (m.flags.includes('k') || m.flags.includes('q')) castled = true;
-      }
-      sans.push(m.san);
-    }
-    n.games++;
-    if (castled) n.castled++;
-    if (i % 10 === 9) await new Promise((r) => setTimeout(r)); // let the page breathe
-  }
-  const per = (x) => (n.moves ? x / n.moves : 0), perGame = (x) => (n.games ? x / n.games : 0);
-  const brain = {
-    games: n.games,
-    book,
-    // nudges in centipawns, against a typical club player: ~20% of moves capture, ~6% check, about one early queen move a game
-    style: n.games ? {
-      capture: clamp((per(n.captures) - 0.2) * 300, -25, 40),
-      check: clamp((per(n.checks) - 0.06) * 500, -15, 40),
-      earlyQueen: clamp((perGame(n.earlyQueen) - 1) * 15, -25, 25),
-      castle: clamp(perGame(n.castled) * 40, 0, 40),
-    } : {},
-  };
-  try { sessionStorage.setItem(key, JSON.stringify(brain)); } catch {}
-  return brain;
 }

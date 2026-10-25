@@ -23,11 +23,13 @@ Below the map, a wooden chess set (three.js, in `src/scripts/board-scene.js`) ho
 kind of piece: rooks are projects, the queen is AI, bishops are product, pawns are data, knights are growth and the
 king is me. The list, and what each side says, is `boardSides` in `src/pages/index.astro`.
 
-**Play me** starts a game against my AI (`src/scripts/chess-ai.js`), which plays at roughly 800–900. When a game
-starts it reads my recent public games on Chess.com (username `lionheartfc`, set as `CHESS_COM` in
-`board-scene.js`), straight from the visitor's browser, and opens with the moves I play and leans towards my habits.
-If Chess.com can't be reached it plays its own way. The rules come from `chess.js`, pinned to an exact version
-because the AI's search uses its internal move functions.
+**Play me** starts a game against my AI (`src/scripts/chess-ai.js`), which plays at roughly 800–900, about my
+Chess.com rapid rating. It plays in my style from `src/data/chess-style.json`: the moves I play in the opening, from
+either side, and how my habits differ from my opponents' (more checks, kingside castling, an early queen less often).
+That file is made from my games on Chess.com (`lionheartfc`): download them as one PGN (open
+https://api.chess.com/pub/player/lionheartfc/games/archives and fetch each month's `/pgn`), then run
+`node scripts/chess-style.mjs path/to/games.pgn`. The rules come from `chess.js`, pinned to an exact version because
+the AI's search uses its internal move functions.
 
 ## The AI assistant
 

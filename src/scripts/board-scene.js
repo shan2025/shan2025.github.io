@@ -3,14 +3,14 @@
 // see-through canvas that reaches a little past its stage. The board sits on a wooden table that fades into the
 // page; pieces taken in a game stand on the table beside it. No glows or highlights: a piece you pick up lifts.
 // Tap a piece to read its side, or drag to turn the board. Or play it: "Play me" starts a game against Shadin's
-// AI (chess-ai.js, about 850, in his style where it can), with the rules kept by chess.js.
+// AI (chess-ai.js, about 850, in his style: data/chess-style.json), with the rules kept by chess.js.
 
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { Chess } from 'chess.js';
-import { choose, learn } from './chess-ai.js';
+import { choose } from './chess-ai.js';
 
 export async function start(root) {
   if (document.fonts) await document.fonts.ready; // the coordinates are lettered in Switzer
@@ -259,7 +259,6 @@ export async function start(root) {
 
 
   // ---- the game: you against Shadin's AI (chess-ai.js), which plays the way he does where it can ----
-  const CHESS_COM = 'lionheartfc'; // Shadin on Chess.com
   // when you win: a line that makes no sense, a "Why?" button, and an answer that makes even less
   const NONSENSE = [
     ['Life is like a soap.', 'Nobody knows. Now go away.'],
@@ -276,7 +275,9 @@ export async function start(root) {
   const btn = Object.fromEntries([...root.querySelectorAll('[data-act]')].map((b) => [b.dataset.act, b]));
   const sidesEl = root.querySelector('.board__sides');
   const intro = [card.kind.textContent, card.title.textContent, card.text.textContent];
-  let mode = 'explore', game = null, you = 'w', brain = null, learning = null, sel = null, lastMove = null;
+  let mode = 'explore', game = null, you = 'w', brain = null, sel = null, lastMove = null;
+  let reading = null; // his games (data/chess-style.json), read the first time someone wants to play
+  const readBrain = () => (reading ||= import('../data/chess-style.json').then((m) => { brain = m.default; }).catch(() => { brain = {}; }));
   let busy = true, thinking = false, yawAim = null; // busy until the pieces have landed, and while they're being set up
   const show = (m) => { // which buttons each moment needs
     mode = m;
@@ -356,14 +357,10 @@ export async function start(root) {
     root.querySelectorAll('.board__side').forEach((b) => b.setAttribute('aria-pressed', 'false'));
     show('choose');
     const ready = () => (brain?.games
-      ? `My AI plays at about 800–900 and learned from my last ${brain.games} games on Chess.com: the openings I play, and my habits.`
-      : 'My AI plays at about 800–900. It couldn’t read my Chess.com games just now, so it’s playing its own way.');
-    say('// Play me', 'Pick a colour', brain ? ready() : 'My AI plays at about 800–900. Reading my games on Chess.com…');
-    learning ||= Promise.race([learn(CHESS_COM), new Promise((r) => setTimeout(r, 8000))]).catch(() => null);
-    learning.then((b) => {
-      brain = b || brain || {};
-      if (mode === 'choose') say('// Play me', 'Pick a colour', ready());
-    });
+      ? `My AI learned from ${brain.games.toLocaleString('en')} of my games on Chess.com and plays at my level, about 800–900. It opens like me (${brain.openings.white}; as black, ${brain.openings.black}) and keeps my habits: plenty of checks, and castling kingside.`
+      : 'My AI plays at about my level, 800–900.');
+    say('// Play me', 'Pick a colour', ready());
+    readBrain().then(() => { if (mode === 'choose') say('// Play me', 'Pick a colour', ready()); });
     wake();
   };
   const startGame = async (colour) => {
@@ -376,7 +373,7 @@ export async function start(root) {
     yawAim = colour === 'w' ? 0 : Math.PI; // your side nearest you
     yawV = 0;
     say(KIND, 'Setting up…', colour === 'w' ? 'You’re white.' : 'You’re black.');
-    await setUpAgain();
+    await Promise.all([setUpAgain(), readBrain()]);
     busy = false;
     next();
   };
