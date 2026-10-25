@@ -152,7 +152,11 @@ const tabs = [
       <div class="board__body">
         <div class="board__stage" aria-label="A chess board of Shadin’s work. Drag to turn it, tap a piece to read it, or move a piece from your side to play his AI.">
           <canvas class="board__canvas" aria-hidden="true"></canvas>
-          <p class="board__tip" aria-hidden="true" hidden></p>
+          <!-- corner labels, as on a Hairline figure: its number, what it is, what to do, and what's under the pointer -->
+          <p class="board__label board__label--tl" aria-hidden="true">Fig 03</p>
+          <p class="board__label board__label--tr" aria-hidden="true">64 squares · 32 pieces</p>
+          <p class="board__label board__label--bl" aria-hidden="true">Drag to turn · move to play</p>
+          <p class="board__label board__label--br board__read" aria-hidden="true">rest</p>
         </div>
         <aside class="board__card" aria-live="polite">
           <p class="board__kind">How it works</p>

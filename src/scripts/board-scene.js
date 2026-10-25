@@ -1,7 +1,9 @@
-// The board: a wooden chess set sitting on the page, one kind of piece for each side of the work (the rooks are
-// projects, the queen is AI, the king is me, and so on; the list lives in index.astro). It's drawn on a
-// see-through canvas that reaches a little past its stage. The board sits on a wooden table that fades into the
-// page; pieces taken in a game stand on the table beside it. No glows or highlights: a piece you pick up lifts.
+// The board: a chess set drawn in hairlines, after Lucas Markes's Hairline figures (hairline.lucasmarkes.com), one
+// kind of piece for each side of the work (the rooks are projects, the queen is AI, the king is me, and so on; the
+// list lives in index.astro). It's drawn on a see-through canvas that reaches a little past its stage.
+// The drawing is lines only: a bright line where something stands in front of something else, a dim one where a
+// surface turns a corner, nothing filled but the dark squares and the black pieces, faintly, as in a chess diagram.
+// The only colour is the site's accent, on the outline of the piece you point at or pick up.
 // It puts itself together as you scroll to it: the frame rises, the 64 squares fly in and lock together, and
 // the pieces drop onto them. Scroll back and it comes apart again, until a game has started.
 // Tap a piece to read its side, drag to turn the board any way (underneath, there's a note for the curious), or
@@ -10,194 +12,114 @@
 
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
-import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { Chess } from 'chess.js';
 import { choose } from './chess-ai.js';
 
 export async function start(root) {
-  if (document.fonts) await document.fonts.ready; // the coordinates are lettered in Switzer
   const stage = root.querySelector('.board__stage');
   const canvas = root.querySelector('.board__canvas');
-  const tip = root.querySelector('.board__tip');
+  const readOut = root.querySelector('.board__read');
   const sides = JSON.parse(root.querySelector('#board-data').textContent);
   const sideOf = Object.fromEntries(sides.map((s) => [s.piece, s])); // 'r' → the rooks' side
   const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   let renderer;
   try {
-    renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'high-performance' });
+    renderer = new THREE.WebGLRenderer({ canvas, antialias: false, alpha: true, powerPreference: 'high-performance' });
   } catch {
     root.classList.add('no-3d'); // no WebGL: show the list instead
     return;
   }
-  renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 1.75));
+  renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2)); // hairlines want every pixel there is
   renderer.setClearColor(0x000000, 0);
-  renderer.outputColorSpace = THREE.SRGBColorSpace;
-  renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-  const aniso = Math.min(8, renderer.capabilities.getMaxAnisotropy());
 
-  // ---- wood: value noise, drawn into tiles of grain ----
-  const hash = (x, y) => { const s = Math.sin(x * 127.1 + y * 311.7) * 43758.5453; return s - Math.floor(s); };
-  const noise = (x, y) => {
-    const xi = Math.floor(x), yi = Math.floor(y), xf = x - xi, yf = y - yi;
-    const u = xf * xf * (3 - 2 * xf), v = yf * yf * (3 - 2 * yf);
-    const a = hash(xi, yi), b = hash(xi + 1, yi), c = hash(xi, yi + 1), d = hash(xi + 1, yi + 1);
-    return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v;
-  };
-  const fbm = (x, y) => noise(x, y) * 0.55 + noise(x * 2.1, y * 2.1) * 0.3 + noise(x * 4.3, y * 4.3) * 0.15;
-  // the grain runs along the tile (left to right): wavy growth rings, fine pores, and a slow change in tone
-  const wood = (S, light, dark, rings, seed, wave = 1.2) => {
-    const c = document.createElement('canvas');
-    c.width = c.height = S;
-    const g = c.getContext('2d'), img = g.createImageData(S, S);
-    for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) {
-      const u = x / S, v = y / S;
-      const t = v * rings + fbm(u * 1.6 + seed, v * 1.2 + seed) * wave;
-      const ring = (0.5 + 0.5 * Math.sin(t * Math.PI * 2)) ** 5;
-      const pore = noise(u * 18 + seed, v * 420) ** 3;
-      const tone = fbm(u * 1.2 - seed, v * 3 + seed);
-      const k = Math.min(1, ring * 0.32 + pore * 0.28 + tone * 0.32);
-      const i = (y * S + x) * 4;
-      for (let ch = 0; ch < 3; ch++) img.data[i + ch] = Math.round(light[ch] + (dark[ch] - light[ch]) * k);
-      img.data[i + 3] = 255;
-    }
-    g.putImageData(img, 0, 0);
-    return c;
-  };
-  const MAPLE = wood(384, [228, 198, 148], [190, 148, 96], 16, 1.3);
-  const WALNUT = wood(384, [104, 64, 38], [58, 34, 20], 14, 4.1);
-  const FRAME = wood(512, [74, 43, 26], [36, 20, 12], 12, 7.7, 2);
-  const BOXWOOD = wood(256, [226, 207, 170], [190, 158, 110], 10, 2.2);
-  const EBONY = wood(256, [46, 36, 31], [16, 12, 10], 6, 5.5);
-  const texture = (c, repeat = 1, turn = 0) => {
-    const t = new THREE.CanvasTexture(c);
-    t.colorSpace = THREE.SRGBColorSpace;
-    t.anisotropy = aniso;
-    t.wrapS = t.wrapT = THREE.RepeatWrapping;
-    t.repeat.set(repeat, repeat);
-    t.center.set(0.5, 0.5);
-    t.rotation = turn;
-    return t;
-  };
+  // ---- drawing in lines ----
+  // Pass one draws the scene into a buffer: each pixel's depth, which way its surface faces, and what it is (its
+  // class). Pass two reads that and draws the lines on the page.
+  const CLS = { plain: 0.1, dark: 0.3, black: 0.5, whiteLit: 0.7, blackLit: 0.9 };
+  const classMat = (cls) => new THREE.ShaderMaterial({
+    uniforms: { cls: { value: cls } },
+    vertexShader: 'varying vec3 vN; void main() { vN = normalize(normalMatrix * normal); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+    fragmentShader: 'uniform float cls; varying vec3 vN; void main() { gl_FragColor = vec4(normalize(vN) * 0.5 + 0.5, cls); }',
+    blending: THREE.NoBlending,
+  });
+  const MAT = Object.fromEntries(Object.entries(CLS).map(([k, v]) => [k, classMat(v)]));
+  const css = getComputedStyle(document.documentElement);
+  const rgb = (value, fallback) => { const c = new THREE.Color(value.trim() || fallback), o = {}; c.getRGB(o, THREE.SRGBColorSpace); return new THREE.Vector3(o.r, o.g, o.b); };
+  const buffer = new THREE.WebGLRenderTarget(1, 1, { depthTexture: new THREE.DepthTexture(1, 1) });
+  const NEAR = 1, FAR = 80;
+  const lines = new THREE.ShaderMaterial({
+    uniforms: {
+      tData: { value: buffer.texture }, tDepth: { value: buffer.depthTexture }, px: { value: new THREE.Vector2() },
+      range: { value: FAR - NEAR }, ink: { value: rgb(css.getPropertyValue('--ink'), '#eef4fb') }, accent: { value: rgb(css.getPropertyValue('--accent'), '#fcd34d') },
+    },
+    vertexShader: 'varying vec2 vUv; void main() { vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }',
+    fragmentShader: `
+      uniform sampler2D tData; uniform sampler2D tDepth; uniform vec2 px; uniform float range; uniform vec3 ink; uniform vec3 accent;
+      varying vec2 vUv;
+      float dep(vec2 o) { return texture2D(tDepth, vUv + o).x; }
+      vec3 nrm(vec2 o) { return texture2D(tData, vUv + o).rgb * 2.0 - 1.0; }
+      void main() {
+        float d = dep(vec2(0.0));
+        if (d >= 1.0) { gl_FragColor = vec4(0.0); return; } // nothing here
+        vec2 x = vec2(px.x, 0.0), y = vec2(0.0, px.y);
+        // the outline: a neighbour is far behind this pixel, so this is the near side of an edge
+        float gap = (max(max(dep(x), dep(-x)), max(dep(y), dep(-y))) - d) * range;
+        float outline = smoothstep(0.05, 0.12, gap);
+        // a crease: the surface turns a corner between here and a neighbour
+        vec3 n = nrm(vec2(0.0));
+        float bend = max(max(1.0 - dot(n, nrm(x)), 1.0 - dot(n, nrm(-x))), max(1.0 - dot(n, nrm(y)), 1.0 - dot(n, nrm(-y))));
+        float crease = smoothstep(0.09, 0.22, bend) * (1.0 - outline);
+        float k = texture2D(tData, vUv).a;
+        bool lit = k > 0.6, black = (k > 0.4 && k < 0.6) || k > 0.8;
+        float fill = (k > 0.2 && k < 0.4) ? 0.07 : black ? 0.3 : 0.0; // dark squares and black pieces, faintly
+        float a = max(outline * 0.95, crease * 0.26);
+        vec3 line = lit && outline > 0.0 ? accent : ink;
+        gl_FragColor = vec4(line * a + ink * fill * (1.0 - a), a + fill * (1.0 - a)); // premultiplied
+      }`,
+    depthTest: false, depthWrite: false, blending: THREE.NoBlending,
+  });
+  const linesScene = new THREE.Scene(), linesCam = new THREE.Camera();
+  linesScene.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), lines));
 
-  // ---- the board: eight by eight in maple and walnut, set in a darker frame lettered a–h and 1–8 ----
+  // ---- the board: eight by eight, set in a frame ----
   // One square is one unit; files run along x (a on the left), ranks along z (white's side, rank 1, nearest you).
-  const TOP = 9.04, RIM = (TOP - 8) / 2;
-  // the whole top, painted at once: the frame with its inlay and letters, and either the squares or, for the frame
-  // on its own, the dark recess they sit in
-  const paintBoard = (S, squares) => {
-    const sq = S / TOP, edge = RIM * sq, k = S / 2048;
-    const c = document.createElement('canvas');
-    c.width = c.height = S;
-    const g = c.getContext('2d');
-    g.drawImage(FRAME, 0, 0, S, S);
-    g.fillStyle = 'rgba(214,184,124,0.55)'; // a thin inlay round the squares
-    g.fillRect(edge - 7 * k, edge - 7 * k, 8 * sq + 14 * k, 8 * sq + 14 * k);
-    if (!squares) {
-      g.fillStyle = '#24150c';
-      g.fillRect(edge, edge, 8 * sq, 8 * sq);
-    } else for (let f = 0; f < 8; f++) for (let r = 0; r < 8; r++) {
-      const tile = (f + r) % 2 === 0 ? WALNUT : MAPLE; // a1 is dark
-      const w = 160, sx = Math.random() * (384 - w), sy = Math.random() * (384 - w);
-      g.drawImage(tile, sx, sy, w, w, edge + f * sq, edge + (7 - r) * sq, sq + 0.5, sq + 0.5);
-    }
-    g.fillStyle = 'rgba(230,206,156,0.8)';
-    g.font = `600 ${Math.round(52 * k)}px Switzer, system-ui, sans-serif`;
-    g.textAlign = 'center';
-    g.textBaseline = 'middle';
-    for (let i = 0; i < 8; i++) {
-      g.fillText('abcdefgh'[i], edge + (i + 0.5) * sq, S - edge / 2);
-      g.fillText(String(8 - i), edge / 2, edge + (i + 0.5) * sq);
-    }
-    return texture(c);
-  };
-
+  // The squares stand a little proud of the frame, so the playing area has an edge.
+  const TOP = 9.04;
   const world = new THREE.Scene();
-  const pmrem = new THREE.PMREMGenerator(renderer);
-  world.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture; // soft reflections in the wax
-  world.environmentIntensity = 0.35;
-  const camera = new THREE.PerspectiveCamera(28, 1, 0.1, 100);
-  const sun = new THREE.DirectionalLight(0xfff0dc, 2.6); // warm light from high on the left
-  sun.position.set(-6, 12, 7);
-  sun.castShadow = true;
-  sun.shadow.mapSize.setScalar(innerWidth < 700 ? 1024 : 2048);
-  Object.assign(sun.shadow.camera, { left: -7, right: 7, top: 7, bottom: -7, near: 1, far: 40 });
-  sun.shadow.normalBias = 0.02;
-  sun.shadow.radius = 4;
-  world.add(sun, new THREE.HemisphereLight(0xfff6ea, 0x2a2420, 0.35));
-
+  const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, NEAR, FAR); // drawn without perspective, as an isometric figure is
   const tiltGroup = new THREE.Group(); // dragging up and down tips this over
   const turnGroup = new THREE.Group(); // dragging across turns this about the vertical
   const boardGroup = new THREE.Group();
   turnGroup.add(boardGroup);
   tiltGroup.add(turnGroup);
   world.add(tiltGroup);
-  const satin = (map, extra = {}) => new THREE.MeshPhysicalMaterial({ map, roughness: 0.55, clearcoat: 0.35, clearcoatRoughness: 0.35, ...extra }); // waxed wood, not gloss
-  const body = new THREE.Mesh(new RoundedBoxGeometry(TOP + 0.16, 0.42, TOP + 0.16, 4, 0.08), satin(texture(FRAME, 1, Math.PI / 2), { envMapIntensity: 0.45 }));
-  body.position.y = -0.21;
-  body.receiveShadow = body.castShadow = true;
-  const top = new THREE.Mesh(new THREE.PlaneGeometry(TOP, TOP), satin(paintBoard(1024, false))); // the frame; also what taps are aimed at
+  const body = new THREE.Mesh(new RoundedBoxGeometry(TOP + 0.16, 0.42, TOP + 0.16, 4, 0.08), MAT.plain);
+  body.position.y = -0.26; // its top 0.05 below the squares
+  const top = new THREE.Mesh(new THREE.PlaneGeometry(TOP, TOP), MAT.plain); // not drawn: what taps on squares are aimed at
   top.rotation.x = -Math.PI / 2;
   top.position.y = 0.001;
-  top.receiveShadow = true;
-  // the 64 squares, each its own tile cut from the painted board: where it flies in from, and when
-  const squaresMat = satin(paintBoard(2048, true));
+  top.visible = false;
+  // the 64 squares, each its own tile: where it flies in from, and when
   const tiles = [];
   for (let f = 0; f < 8; f++) for (let r = 0; r < 8; r++) {
-    const geo = new THREE.BoxGeometry(1, 0.06, 1), uv = geo.attributes.uv;
-    for (let i = 0; i < uv.count; i++) uv.setXY(i, (f + RIM + uv.getX(i)) / TOP, (r + RIM + uv.getY(i)) / TOP);
-    const mesh = new THREE.Mesh(geo, squaresMat);
-    mesh.castShadow = mesh.receiveShadow = true;
-    const home = new THREE.Vector3(f - 3.5, -0.027, 3.5 - r); // its top just above the frame's recess
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(1, 0.06, 1), (f + r) % 2 === 0 ? MAT.dark : MAT.plain); // a1 is dark
+    const home = new THREE.Vector3(f - 3.5, -0.027, 3.5 - r);
     const out = (n) => (Math.random() * 2 - 1) * n;
     tiles.push({ mesh, home, from: home.clone().add(new THREE.Vector3(out(5), 1.5 + Math.random() * 2.5, out(4))), // near the board, not over the heading
       spin: new THREE.Quaternion().setFromEuler(new THREE.Euler(out(Math.PI), out(Math.PI), out(Math.PI))), delay: Math.random() });
   }
-  // the table the board stands on: dark walnut, fading out into the page at its edges
-  const TABLE = -0.42; // its surface, level with the bottom of the board
-  const table = (() => {
-    const fade = document.createElement('canvas');
-    fade.width = fade.height = 256;
-    const g = fade.getContext('2d'), r = g.createRadialGradient(128, 128, 60, 128, 128, 128);
-    r.addColorStop(0, '#fff');
-    r.addColorStop(1, '#000');
-    g.fillStyle = r;
-    g.fillRect(0, 0, 256, 256);
-    const grain = texture(wood(512, [64, 40, 25], [30, 18, 11], 10, 3.3, 1.5), 3);
-    const m = new THREE.Mesh(new THREE.PlaneGeometry(15, 15), new THREE.MeshStandardMaterial({ map: grain, alphaMap: new THREE.CanvasTexture(fade), transparent: true, roughness: 0.75, depthWrite: false }));
-    m.rotation.x = -Math.PI / 2;
-    m.position.y = TABLE;
-    m.receiveShadow = true;
+  const TABLE = -0.47; // the ground the board stands on, where taken pieces go
+  // underneath: four felt pads, for whoever turns it over
+  const pads = [-1, 1].flatMap((sx) => [-1, 1].map((sz) => {
+    const m = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.42, 0.06, 32), MAT.plain);
+    m.position.set(sx * 3.9, -0.5, sz * 3.9);
     return m;
-  })();
-  // underneath: green baize, and a note for whoever turns it over
-  const felt = (() => {
-    const S = 1024, c = document.createElement('canvas');
-    c.width = c.height = S;
-    const g = c.getContext('2d'), img = g.createImageData(S, S);
-    for (let i = 0; i < S * S; i++) {
-      const v = Math.random() * 14;
-      img.data[i * 4] = 28 + v; img.data[i * 4 + 1] = 62 + v; img.data[i * 4 + 2] = 46 + v; img.data[i * 4 + 3] = 255;
-    }
-    g.putImageData(img, 0, 0);
-    g.fillStyle = 'rgba(232,210,160,0.85)';
-    g.textAlign = 'center';
-    g.textBaseline = 'middle';
-    g.font = '600 76px Switzer, system-ui, sans-serif';
-    g.fillText('Too curious, aren’t you?', S / 2, S / 2 - 30);
-    g.font = '500 34px Switzer, system-ui, sans-serif';
-    g.fillText('The game is on the other side.', S / 2, S / 2 + 50);
-    const m = new THREE.Mesh(new THREE.PlaneGeometry(TOP, TOP), new THREE.MeshStandardMaterial({ map: texture(c), roughness: 1 }));
-    m.rotation.x = Math.PI / 2; // facing down; its writing reads the right way up once the board is turned over
-    m.position.y = -0.423;
-    return m;
-  })();
+  }));
   const frameGroup = new THREE.Group(); // the frame rises into place first
-  frameGroup.add(body, top, felt);
-  boardGroup.add(table, frameGroup, ...tiles.map((t) => t.mesh));
+  frameGroup.add(body, top, ...pads);
+  boardGroup.add(frameGroup, ...tiles.map((t) => t.mesh));
 
   // ---- the pieces: turned on a lathe (profiles are [radius, height]), with crowns, crosses and a carved knight ----
   const arc = (cy, r, a0, a1, n = 10) => Array.from({ length: n + 1 }, (_, i) => {
@@ -235,17 +157,14 @@ export async function start(root) {
       [0.21, 0.99], [0.22, 1.04], [0.16, 1.07], [0.12, 1.1], [0.07, 1.12], [0, 1.12]]), block(0.07, 0.26, 0.07, 1.25), block(0.2, 0.07, 0.07, 1.27)],
   };
   const GEO = Object.fromEntries(Object.entries(SHAPES).map(([k, parts]) => [k, mergeGeometries(parts)]));
-  const WHITE = satin(texture(BOXWOOD, 1, Math.PI / 2), { roughness: 0.5, clearcoat: 0.3 });
-  const BLACK = satin(texture(EBONY, 1, Math.PI / 2), { roughness: 0.42, clearcoat: 0.45 });
   const NAMES = { p: 'Pawn', r: 'Rook', n: 'Knight', b: 'Bishop', q: 'Queen', k: 'King' };
 
   const at = (f, r) => new THREE.Vector3(f - 3.5, 0, 3.5 - r);
   const pieces = [];
   const setUp = (rank, row, white) => [...row].forEach((type, f) => {
-    const mesh = new THREE.Mesh(GEO[type], white ? WHITE : BLACK);
-    mesh.castShadow = mesh.receiveShadow = true;
+    const mesh = new THREE.Mesh(GEO[type], white ? MAT.plain : MAT.black);
     if (type === 'n') mesh.rotation.y = f < 4 ? 0 : Math.PI; // knights look in along the rank, so you see their heads
-    const p = { mesh, type, base: type, white, home: [f, rank], sq: [f, rank], y0: 0, lift: 0, liftV: 0 }; // y0: on the board, or the table
+    const p = { mesh, type, base: type, white, home: [f, rank], sq: [f, rank], y0: 0, lift: 0, liftV: 0 }; // y0: on the board, or the ground beside it
     mesh.userData.piece = p;
     mesh.position.copy(at(f, rank));
     boardGroup.add(mesh);
@@ -295,7 +214,7 @@ export async function start(root) {
 
   // ---- moving pieces: picked up, carried (a knight a little higher, over the others) and set down ----
   const moving = [];
-  const glide = (p, to, ms) => new Promise((done) => { // to: a spot on the board, or on the table beside it
+  const glide = (p, to, ms) => new Promise((done) => { // to: a spot on the board, or on the ground beside it
     const from = p.mesh.position.clone().setY(p.y0);
     const far = from.distanceTo(to);
     p.y0 = to.y;
@@ -346,7 +265,7 @@ export async function start(root) {
     return glide(p, at(...p.home), reduced ? 0 : 650);
   }));
   const taken = { w: 0, b: 0 };
-  // pieces you take stand on the table to your right of the board; pieces it takes, to its right
+  // pieces you take stand to your right of the board; pieces it takes, to its right
   const besideBoard = (p) => {
     const c = colourOf(p), i = taken[c]++, side = (c !== you ? 1 : -1) * (you === 'w' ? 1 : -1);
     return new THREE.Vector3(side * (5.25 + Math.floor(i / 8) * 0.75), TABLE, side * ((i % 8) - 3.5) * 0.85);
@@ -436,7 +355,7 @@ export async function start(root) {
     busy = true;
     show('explore');
     say(...intro);
-    viewAim = { yaw: you === 'w' ? 0 : Math.PI, pitch: 0 }; // level again, your side in front of you
+    viewAim = { yaw: you === 'w' ? HOME : HOME + Math.PI, pitch: 0 }; // level again, your side in front of you
     await setUpAgain();
     busy = false;
   });
@@ -491,19 +410,17 @@ export async function start(root) {
   let from = null, moved = 0, hovered = null, built = false;
   const point = (p, e) => {
     if (p && mode === 'game' && (!p.sq || colourOf(p) !== you || game.turn() !== you)) p = null; // in a game, only your own pieces answer
-    if (p && mode === 'explore') {
-      const r = stage.getBoundingClientRect();
-      tip.textContent = `${NAMES[p.type]} · ${sideOf[p.type].name}`;
-      tip.style.transform = `translate(${e.clientX - r.left + 14}px, ${e.clientY - r.top + 14}px)`;
-    }
-    tip.hidden = !(p && mode === 'explore');
+    // the read-out in the corner names what's under the pointer, in a few words, or says rest
+    const square = !p && e ? squareAt(e) : null;
+    readOut.textContent = peeking ? 'underneath' : p ? [p.sq && nameOf(p.sq), NAMES[p.type].toLowerCase(), mode === 'explore' && sideOf[p.type].name.toLowerCase()].filter(Boolean).join(' · ') : square || 'rest';
     if (p === hovered) return;
     hovered = p;
     stage.classList.toggle('is-pointing', !!p && mode !== 'over');
     wake();
   };
   // dragging turns the board any way: across spins it round, up and down tips it over (all the way, if you like)
-  let yaw = 0, yawV = 0, pitch = 0, viewAim = null;
+  const HOME = Math.PI / 4; // turned 45°, as an isometric figure stands, with white's corner nearest you
+  let yaw = HOME, yawV = 0, pitch = 0, viewAim = null;
   const wrap = (a) => a - Math.PI * 2 * Math.round(a / (Math.PI * 2));
   stage.addEventListener('pointerdown', (e) => { from = [e.clientX, e.clientY]; moved = 0; });
   addEventListener('pointermove', (e) => {
@@ -541,14 +458,13 @@ export async function start(root) {
   // ---- putting itself together, as far as you've scrolled: 0 is in pieces in the air, 1 is set up ----
   const NONE = new THREE.Quaternion();
   const c01 = (t) => Math.max(0, Math.min(1, t)), easeOut = (t) => 1 - (1 - t) ** 3;
-  let shown = reduced ? 1 : 0, tableFade = 1, settled = -1;
+  let shown = reduced ? 1 : 0, settled = -1;
   const settle = (k) => {
     if (k === settled) return;
     settled = k;
     const b = easeOut(c01(k / 0.3)); // the frame rises first
     frameGroup.position.y = -(1 - b) * 3;
     frameGroup.visible = k > 0.001;
-    tableFade = b;
     for (const t of tiles) { // then the squares fly in and lock together
       const e = easeOut(c01((k - 0.1 - t.delay * 0.4) / 0.3));
       t.mesh.position.lerpVectors(t.from, t.home, e);
@@ -568,18 +484,17 @@ export async function start(root) {
 
   // ---- size: the board sits in the middle of its canvas, sized to the stage ----
   const toCamera = new THREE.Vector3();
+  const EL = Math.asin(0.5); // the 2:1 view of an isometric figure
   const resize = () => {
     const w = canvas.clientWidth, h = canvas.clientHeight;
     if (!w || !h) return;
     renderer.setSize(w, h, false);
-    camera.aspect = w / h;
-    camera.position.set(0, 12, 11); // high enough that pieces don't hide the ones behind them
-    camera.lookAt(0, -0.4, 0);
+    const unit = Math.min(stage.clientWidth * 0.84 / 12.8, stage.clientHeight * 0.92 / 8); // pixels per square; 12.8 is the board's diagonal, so it fits turned any way
+    Object.assign(camera, { left: -w / 2 / unit, right: w / 2 / unit, top: h / 2 / unit, bottom: -h / 2 / unit });
+    camera.position.set(0, Math.sin(EL), Math.cos(EL)).multiplyScalar(30);
+    camera.lookAt(0, 0.2, 0);
     camera.updateProjectionMatrix();
     toCamera.copy(camera.position).normalize();
-    const unitPx = (2 * camera.position.length() * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2))) / h; // world units per pixel
-    const size = Math.min(stage.clientWidth * 0.84, stage.clientHeight * 1.1) * unitPx;
-    turnGroup.scale.setScalar(size / TOP);
     wake();
   };
   new ResizeObserver(resize).observe(canvas);
@@ -605,21 +520,23 @@ export async function start(root) {
     if (Math.abs(aimed - shown) < 1e-3) shown = aimed;
     settle(shown);
     built = shown > 0.97; // together enough to play on
-    table.material.opacity = Math.max(0, 1 - Math.abs(pitch) / 0.3) * tableFade; // lift the board off the table and the table goes
-    table.visible = table.material.opacity > 0.01;
     // turned far enough over that you're looking at the bottom?
     const facing = toCamera.y * Math.cos(pitch) + toCamera.z * Math.sin(pitch);
     if (facing < -0.15 && !peeking) {
       peeking = true;
-      write('// Hey', 'Too curious, aren’t you?', 'Nothing under here but felt. The game is on the other side.');
+      write('// Hey', 'Too curious, aren’t you?', 'Nothing under here but four felt pads. The game is on the other side.');
+      readOut.textContent = 'underneath';
     } else if (facing > 0.05 && peeking) {
       peeking = false;
       write(...said);
+      readOut.textContent = 'rest';
     }
     let springing = false;
     for (const p of pieces) { // the piece in hand (or the picked kind) is lifted off the board; the one under the pointer rises a little
       const up = sel === p || (mode === 'explore' && picked === p.type);
       const want = up ? 0.22 : p === hovered ? 0.14 : 0;
+      const lit = up || p === hovered;
+      p.mesh.material = p.white ? (lit ? MAT.whiteLit : MAT.plain) : (lit ? MAT.blackLit : MAT.black);
       p.liftV += (160 * (want - p.lift) - 17 * p.liftV) * dt;
       p.lift += p.liftV * dt;
       if (Math.abs(want - p.lift) > 1e-3 || Math.abs(p.liftV) > 1e-3) springing = true;
@@ -631,9 +548,23 @@ export async function start(root) {
       if (k >= 1) { m.p.mesh.position.copy(m.to); moving.splice(i, 1); m.done(); }
     }
     for (const p of pieces) if (!moving.some((m) => m.p === p)) p.mesh.position.y = p.y0 + p.lift + p.drop;
-    renderer.render(world, camera);
+    draw();
     const busyFrame = moving.length || springing || yawV || viewAim || shown !== aimed;
     if (near && !document.hidden && busyFrame) raf = requestAnimationFrame(frame);
+  };
+  const drawn = new THREE.Vector2();
+  const draw = () => { // the scene into the buffer, then the buffer onto the page as lines
+    renderer.getDrawingBufferSize(drawn);
+    if (buffer.width !== drawn.x || buffer.height !== drawn.y) {
+      buffer.setSize(drawn.x, drawn.y);
+      lines.uniforms.px.value.set(1 / drawn.x, 1 / drawn.y);
+    }
+    renderer.setRenderTarget(buffer);
+    renderer.clear();
+    renderer.render(world, camera);
+    renderer.setRenderTarget(null);
+    renderer.clear();
+    renderer.render(linesScene, linesCam);
   };
   function wake() { if (!raf && near && !document.hidden) { last = performance.now(); raf = requestAnimationFrame(frame); } }
   // run while the section is within a screen of view; otherwise stop and hide the canvas
