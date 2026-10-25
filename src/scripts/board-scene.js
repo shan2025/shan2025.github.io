@@ -1,7 +1,7 @@
 // The board: a wooden chess set sitting on the page, one kind of piece for each side of the work (the rooks are
 // projects, the queen is AI, the king is me, and so on; the list lives in index.astro). It's drawn on a
-// see-through canvas that reaches a little past its stage, so pieces have room to lift.
-// When it first comes into view the board settles and the pieces drop onto their squares, white first.
+// see-through canvas that reaches a little past its stage. The board sits on a wooden table that fades into the
+// page; pieces taken in a game stand on the table beside it. No glows or highlights: a piece you pick up lifts.
 // Tap a piece to read its side, or drag to turn the board. Or play it: "Play me" starts a game against Shadin's
 // AI (chess-ai.js, about 850, in his style where it can), with the rules kept by chess.js.
 
@@ -35,7 +35,6 @@ export async function start(root) {
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   const aniso = Math.min(8, renderer.capabilities.getMaxAnisotropy());
-  const accent = new THREE.Color(getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#fcd34d');
 
   // ---- wood: value noise, drawn into tiles of grain ----
   const hash = (x, y) => { const s = Math.sin(x * 127.1 + y * 311.7) * 43758.5453; return s - Math.floor(s); };
@@ -110,8 +109,8 @@ export async function start(root) {
 
   const world = new THREE.Scene();
   const pmrem = new THREE.PMREMGenerator(renderer);
-  world.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture; // soft reflections in the lacquer
-  world.environmentIntensity = 0.55;
+  world.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture; // soft reflections in the wax
+  world.environmentIntensity = 0.35;
   const camera = new THREE.PerspectiveCamera(28, 1, 0.1, 100);
   const sun = new THREE.DirectionalLight(0xfff0dc, 2.6); // warm light from high on the left
   sun.position.set(-6, 12, 7);
@@ -126,29 +125,32 @@ export async function start(root) {
   const boardGroup = new THREE.Group();
   turnGroup.add(boardGroup);
   world.add(turnGroup);
-  const lacquer = (map, extra = {}) => new THREE.MeshPhysicalMaterial({ map, roughness: 0.42, clearcoat: 1, clearcoatRoughness: 0.14, ...extra });
-  const body = new THREE.Mesh(new RoundedBoxGeometry(TOP + 0.16, 0.42, TOP + 0.16, 4, 0.08), lacquer(texture(FRAME, 1, Math.PI / 2), { envMapIntensity: 0.45 }));
+  const satin = (map, extra = {}) => new THREE.MeshPhysicalMaterial({ map, roughness: 0.55, clearcoat: 0.35, clearcoatRoughness: 0.35, ...extra }); // waxed wood, not gloss
+  const body = new THREE.Mesh(new RoundedBoxGeometry(TOP + 0.16, 0.42, TOP + 0.16, 4, 0.08), satin(texture(FRAME, 1, Math.PI / 2), { envMapIntensity: 0.45 }));
   body.position.y = -0.21;
   body.receiveShadow = body.castShadow = true;
-  const top = new THREE.Mesh(new THREE.PlaneGeometry(TOP, TOP), lacquer(boardTex));
+  const top = new THREE.Mesh(new THREE.PlaneGeometry(TOP, TOP), satin(boardTex));
   top.rotation.x = -Math.PI / 2;
   top.position.y = 0.002;
   top.receiveShadow = true;
-  // a soft shadow on the page below the board, so it sits on something
-  const under = (() => {
-    const c = document.createElement('canvas');
-    c.width = c.height = 128;
-    const g = c.getContext('2d'), r = g.createRadialGradient(64, 64, 20, 64, 64, 64);
-    r.addColorStop(0, 'rgba(0,0,0,0.55)');
-    r.addColorStop(1, 'rgba(0,0,0,0)');
+  // the table the board stands on: dark walnut, fading out into the page at its edges
+  const TABLE = -0.42; // its surface, level with the bottom of the board
+  const table = (() => {
+    const fade = document.createElement('canvas');
+    fade.width = fade.height = 256;
+    const g = fade.getContext('2d'), r = g.createRadialGradient(128, 128, 60, 128, 128, 128);
+    r.addColorStop(0, '#fff');
+    r.addColorStop(1, '#000');
     g.fillStyle = r;
-    g.fillRect(0, 0, 128, 128);
-    const m = new THREE.Mesh(new THREE.PlaneGeometry(TOP * 1.5, TOP * 1.5), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(c), transparent: true, depthWrite: false }));
+    g.fillRect(0, 0, 256, 256);
+    const grain = texture(wood(512, [64, 40, 25], [30, 18, 11], 10, 3.3, 1.5), 3);
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(15, 15), new THREE.MeshStandardMaterial({ map: grain, alphaMap: new THREE.CanvasTexture(fade), transparent: true, roughness: 0.75, depthWrite: false }));
     m.rotation.x = -Math.PI / 2;
-    m.position.y = -0.6;
+    m.position.y = TABLE;
+    m.receiveShadow = true;
     return m;
   })();
-  boardGroup.add(body, top, under);
+  boardGroup.add(table, body, top);
 
   // ---- the pieces: turned on a lathe (profiles are [radius, height]), with crowns, crosses and a carved knight ----
   const arc = (cy, r, a0, a1, n = 10) => Array.from({ length: n + 1 }, (_, i) => {
@@ -186,22 +188,9 @@ export async function start(root) {
       [0.21, 0.99], [0.22, 1.04], [0.16, 1.07], [0.12, 1.1], [0.07, 1.12], [0, 1.12]]), block(0.07, 0.26, 0.07, 1.25), block(0.2, 0.07, 0.07, 1.27)],
   };
   const GEO = Object.fromEntries(Object.entries(SHAPES).map(([k, parts]) => [k, mergeGeometries(parts)]));
-  const WHITE = lacquer(texture(BOXWOOD, 1, Math.PI / 2), { roughness: 0.45, clearcoat: 0.55, clearcoatRoughness: 0.22 });
-  const BLACK = lacquer(texture(EBONY, 1, Math.PI / 2), { roughness: 0.32, clearcoat: 0.9 });
+  const WHITE = satin(texture(BOXWOOD, 1, Math.PI / 2), { roughness: 0.5, clearcoat: 0.3 });
+  const BLACK = satin(texture(EBONY, 1, Math.PI / 2), { roughness: 0.42, clearcoat: 0.45 });
   const NAMES = { p: 'Pawn', r: 'Rook', n: 'Knight', b: 'Bishop', q: 'Queen', k: 'King' };
-  // a soft ring of the site's accent on the square under a picked piece
-  const haloTex = (() => {
-    const c = document.createElement('canvas');
-    c.width = c.height = 128;
-    const g = c.getContext('2d'), r = g.createRadialGradient(64, 64, 22, 64, 64, 62);
-    r.addColorStop(0, 'rgba(255,255,255,0)');
-    r.addColorStop(0.45, 'rgba(255,255,255,0.95)');
-    r.addColorStop(1, 'rgba(255,255,255,0)');
-    g.fillStyle = r;
-    g.fillRect(0, 0, 128, 128);
-    return new THREE.CanvasTexture(c);
-  })();
-  const haloGeo = new THREE.PlaneGeometry(1.3, 1.3).rotateX(-Math.PI / 2);
 
   const at = (f, r) => new THREE.Vector3(f - 3.5, 0, 3.5 - r);
   const pieces = [];
@@ -209,18 +198,16 @@ export async function start(root) {
     const mesh = new THREE.Mesh(GEO[type], white ? WHITE : BLACK);
     mesh.castShadow = mesh.receiveShadow = true;
     if (type === 'n') mesh.rotation.y = f < 4 ? 0 : Math.PI; // knights look in along the rank, so you see their heads
-    const halo = new THREE.Mesh(haloGeo, new THREE.MeshBasicMaterial({ map: haloTex, color: accent, transparent: true, opacity: 0, depthWrite: false }));
-    const p = { mesh, halo, type, base: type, white, home: [f, rank], sq: [f, rank], lift: 0, liftV: 0, order: 0 };
+    const p = { mesh, type, base: type, white, home: [f, rank], sq: [f, rank], y0: 0, lift: 0, liftV: 0 }; // y0: on the board, or the table
     mesh.userData.piece = p;
     mesh.position.copy(at(f, rank));
-    boardGroup.add(mesh, halo);
+    boardGroup.add(mesh);
     pieces.push(p);
   });
   setUp(0, 'rnbqkbnr', true);
   setUp(1, 'pppppppp', true);
   setUp(6, 'pppppppp', false);
   setUp(7, 'rnbqkbnr', false);
-  pieces.forEach((p, i) => { p.order = i; });
   const meshes = pieces.map((p) => p.mesh);
 
   // ---- the card ----
@@ -255,13 +242,14 @@ export async function start(root) {
   };
   root.querySelectorAll('.board__side').forEach((b) => b.addEventListener('click', () => pickSide(b.dataset.piece)));
 
-  // ---- moving pieces: a lift, a glide (or a hop, for a knight) and a landing ----
+  // ---- moving pieces: picked up, carried (a knight a little higher, over the others) and set down ----
   const moving = [];
-  const glide = (p, to, ms) => new Promise((done) => { // to: a spot on (or beside) the board
-    const from = p.mesh.position.clone().setY(0);
+  const glide = (p, to, ms) => new Promise((done) => { // to: a spot on the board, or on the table beside it
+    const from = p.mesh.position.clone().setY(p.y0);
     const far = from.distanceTo(to);
+    p.y0 = to.y;
     if (!ms || !far) { p.mesh.position.copy(to); done(); return; }
-    moving.push({ p, from, to: to.clone(), t0: performance.now(), ms, hop: p.type === 'n' ? 0.9 : 0.35 + far * 0.04, done });
+    moving.push({ p, from, to: to.clone(), t0: performance.now(), ms, hop: p.type === 'n' ? 0.55 : 0.2 + far * 0.03, done });
     wake();
   });
   const sqOf = (name) => ['abcdefgh'.indexOf(name[0]), Number(name[1]) - 1];
@@ -269,30 +257,6 @@ export async function start(root) {
   const pieceOn = (name) => pieces.find((p) => p.sq && nameOf(p.sq) === name);
   const colourOf = (p) => (p.white ? 'w' : 'b');
 
-  // ---- marks on the board: the last move, a king in check, and where the piece you picked up can go ----
-  const flat = (geo, map, opacity) => {
-    const m = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ map, color: accent, transparent: true, opacity, depthWrite: false }));
-    m.visible = false;
-    boardGroup.add(m);
-    return m;
-  };
-  const squareGeo = new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2);
-  const dotGeo = new THREE.CircleGeometry(0.14, 24).rotateX(-Math.PI / 2);
-  const lastMarks = [flat(squareGeo, null, 0.28), flat(squareGeo, null, 0.28)];
-  const checkMark = flat(haloGeo, haloTex, 0.95);
-  checkMark.material.color.set(0xe5484d);
-  const dots = Array.from({ length: 28 }, () => flat(dotGeo, null, 0.75));
-  const rings = Array.from({ length: 12 }, () => flat(haloGeo, haloTex, 0.8)); // squares you can capture on
-  const mark = (m, name, y = 0.004) => {
-    if (!m) return;
-    const v = at(...sqOf(name));
-    m.position.set(v.x, y, v.z);
-    m.visible = true;
-  };
-  const clearMarks = (all) => {
-    for (const m of [...dots, ...rings]) m.visible = false;
-    if (all) for (const m of [...lastMarks, checkMark]) m.visible = false;
-  };
 
   // ---- the game: you against Shadin's AI (chess-ai.js), which plays the way he does where it can ----
   const CHESS_COM = 'lionheartfc'; // Shadin on Chess.com
@@ -321,38 +285,25 @@ export async function start(root) {
   };
   const setUpAgain = () => Promise.all(pieces.map((p) => {
     if (p.type !== p.base) { p.type = p.base; p.mesh.geometry = GEO[p.base]; }
-    p.mesh.scale.setScalar(1);
     p.sq = p.home.slice();
     return glide(p, at(...p.home), reduced ? 0 : 650);
   }));
   const taken = { w: 0, b: 0 };
-  // pieces you take line up along your edge of the board; pieces it takes, along its edge
+  // pieces you take stand on the table to your right of the board; pieces it takes, to its right
   const besideBoard = (p) => {
     const c = colourOf(p), i = taken[c]++;
     const side = (c !== you ? 1 : -1) * (you === 'w' ? 1 : -1);
-    return new THREE.Vector3(-3.85 + (i % 15) * 0.55, 0, side * (5.1 + Math.floor(i / 15) * 0.6));
+    return new THREE.Vector3(side * (5.25 + Math.floor(i / 8) * 0.75), TABLE, side * ((i % 8) - 3.5) * 0.85);
   };
-  const select = (p) => {
-    sel = p;
-    clearMarks();
-    if (p) {
-      let d = 0, r = 0;
-      for (const m of game.moves({ square: nameOf(p.sq), verbose: true })) {
-        if (m.promotion && m.promotion !== 'q') continue;
-        mark(m.captured ? rings[r++] : dots[d++], m.to, 0.005);
-      }
-    }
-    wake();
-  };
+  const select = (p) => { sel = p; wake(); };
   const play = async (move) => {
     const m = game.move(move);
     const p = pieceOn(m.from), steps = [], ms = reduced ? 0 : 560;
     sel = null;
-    clearMarks();
     if (m.captured) {
       const c = pieceOn(m.flags.includes('e') ? m.to[0] + m.from[1] : m.to);
       c.sq = null;
-      steps.push(new Promise((r) => setTimeout(r, ms * 0.45)).then(() => { c.mesh.scale.setScalar(0.8); return glide(c, besideBoard(c), ms); }));
+      steps.push(new Promise((r) => setTimeout(r, ms * 0.45)).then(() => glide(c, besideBoard(c), ms)));
     }
     p.sq = sqOf(m.to);
     steps.push(glide(p, at(...p.sq), ms));
@@ -364,10 +315,6 @@ export async function start(root) {
     await Promise.all(steps);
     if (m.promotion) { p.type = m.promotion; p.mesh.geometry = GEO[m.promotion]; }
     lastMove = m;
-    mark(lastMarks[0], m.from);
-    mark(lastMarks[1], m.to);
-    checkMark.visible = false;
-    if (game.inCheck()) mark(checkMark, nameOf(pieces.find((k) => k.sq && k.type === 'k' && colourOf(k) === game.turn()).sq), 0.006);
     wake();
     next();
   };
@@ -417,7 +364,6 @@ export async function start(root) {
     game = new Chess();
     lastMove = sel = null;
     taken.w = taken.b = 0;
-    clearMarks(true);
     busy = true;
     show('game');
     yawAim = colour === 'w' ? 0 : Math.PI; // your side nearest you
@@ -438,7 +384,7 @@ export async function start(root) {
   });
   btn.leave.addEventListener('click', async () => {
     game = null;
-    clearMarks(true);
+    sel = null;
     busy = true;
     show('explore');
     say(...intro);
@@ -481,9 +427,10 @@ export async function start(root) {
     const mine = (q) => q && q.sq && colourOf(q) === you;
     const canMove = (q) => game.moves({ square: nameOf(q.sq) }).length > 0;
     const pick = mine(p) ? (!canMove(p) && mine(under) && canMove(under) ? under : p) : mine(under) ? under : null;
+    if (sel && !pick && target) say(KIND, 'Your move', `Your ${NAMES[sel.type].toLowerCase()} can’t go to ${target}. Pick a piece, then a square.`);
     select(pick && pick !== sel ? pick : null);
   };
-  let from = null, moved = 0, hovered = null, built = reduced;
+  let from = null, moved = 0, hovered = null, built = false;
   const point = (p, e) => {
     if (p && mode === 'game' && (!p.sq || colourOf(p) !== you || game.turn() !== you)) p = null; // in a game, only your own pieces answer
     if (p && mode === 'explore') {
@@ -530,40 +477,10 @@ export async function start(root) {
   });
   addEventListener('pointercancel', () => { from = null; });
 
-  // ---- setting itself up: the board settles, then the pieces drop onto their squares, white first ----
-  let buildT0 = null;
-  const easeOut = (t) => 1 - (1 - t) ** 3;
-  const bounce = (t) => { // lands, then a small rebound
-    if (t < 0.7) return (t / 0.7) ** 2;
-    const k = (t - 0.7) / 0.3;
-    return 1 - Math.sin(k * Math.PI) * 0.06;
-  };
-  const BOARD = 700, START = 450, STEP = 38, DROP = 520;
-  const building = (now) => {
-    const t = now - buildT0, b = easeOut(Math.min(1, t / BOARD));
-    boardGroup.position.y = -(1 - b) * 0.8;
-    boardGroup.scale.setScalar(0.94 + b * 0.06);
-    for (const p of pieces) {
-      const k = Math.max(0, Math.min(1, (t - START - p.order * STEP) / DROP));
-      p.mesh.visible = k > 0;
-      p.mesh.position.y = (1 - bounce(k)) * 3.2;
-    }
-    if (t > START + pieces.length * STEP + DROP) finishBuild();
-  };
   const finishBuild = () => {
     built = true;
-    boardGroup.position.y = 0;
-    boardGroup.scale.setScalar(1);
-    for (const p of pieces) { p.mesh.visible = true; p.mesh.position.y = 0; }
     busy = false;
     show('explore');
-  };
-  if (reduced) finishBuild();
-  else for (const p of pieces) p.mesh.visible = false;
-  const measure = () => {
-    const r = stage.getBoundingClientRect();
-    const d = Math.abs(r.top + r.height / 2 - innerHeight / 2) / (innerHeight / 2);
-    if (buildT0 === null && !built && d < 0.6) buildT0 = performance.now();
   };
 
   // ---- size: the board sits in the middle of its canvas, sized to the stage ----
@@ -588,8 +505,6 @@ export async function start(root) {
     raf = 0;
     const dt = Math.min(0.05, (now - last) / 1000);
     last = now;
-    measure();
-    if (buildT0 !== null && !built) building(now);
     if (!from) { yaw += yawV; yawV *= 0.9; if (Math.abs(yawV) < 1e-4) yawV = 0; } // a flick keeps turning, then slows
     if (yawAim !== null && !from) { // turning to face a side: the nearest way round
       const target = yawAim + Math.PI * 2 * Math.round((yaw - yawAim) / (Math.PI * 2));
@@ -598,24 +513,22 @@ export async function start(root) {
     }
     turnGroup.rotation.y = yaw;
     let springing = false;
-    for (const p of pieces) { // the picked kind (or, in a game, the piece in hand) stands up; the one under the pointer rises a little
+    for (const p of pieces) { // the picked kind (or, in a game, the piece in hand) is lifted off the board
       const up = mode === 'explore' ? picked === p.type : sel === p;
-      const want = reduced ? 0 : up ? 0.22 : p === hovered ? 0.12 : 0;
+      const want = up ? 0.15 : 0;
       p.liftV += (160 * (want - p.lift) - 17 * p.liftV) * dt;
       p.lift += p.liftV * dt;
       if (Math.abs(want - p.lift) > 1e-3 || Math.abs(p.liftV) > 1e-3) springing = true;
-      p.halo.material.opacity = up ? 0.9 : p === hovered && mode === 'explore' ? 0.5 : 0;
-      p.halo.position.set(p.mesh.position.x, 0.006, p.mesh.position.z);
     }
     for (let i = moving.length - 1; i >= 0; i--) {
       const m = moving[i], k = Math.min(1, (now - m.t0) / m.ms), e = k < 0.5 ? 4 * k ** 3 : 1 - (-2 * k + 2) ** 3 / 2;
       m.p.mesh.position.lerpVectors(m.from, m.to, e);
-      m.p.mesh.position.y = Math.sin(Math.PI * e) * m.hop;
+      m.p.mesh.position.y += Math.sin(Math.PI * e) * m.hop;
       if (k >= 1) { m.p.mesh.position.copy(m.to); moving.splice(i, 1); m.done(); }
     }
-    if (built) for (const p of pieces) if (!moving.some((m) => m.p === p)) p.mesh.position.y = p.lift;
+    for (const p of pieces) if (!moving.some((m) => m.p === p)) p.mesh.position.y = p.y0 + p.lift;
     renderer.render(world, camera);
-    const busyFrame = !built || moving.length || springing || yawV || yawAim !== null;
+    const busyFrame = moving.length || springing || yawV || yawAim !== null;
     if (near && !document.hidden && busyFrame) raf = requestAnimationFrame(frame);
   };
   function wake() { if (!raf && near && !document.hidden) { last = performance.now(); raf = requestAnimationFrame(frame); } }
@@ -628,8 +541,8 @@ export async function start(root) {
   document.addEventListener('visibilitychange', wake);
   addEventListener('scroll', wake, { passive: true });
 
-  show('explore');
   root.classList.add('is-live');
-
   resize();
+  finishBuild();
+
 }
