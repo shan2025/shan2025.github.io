@@ -88,6 +88,9 @@
       if (matchMedia('(prefers-reduced-motion: reduce)').matches) gone();
       else el.addEventListener('animationend', gone, { once: true });
     }
+    // once the newest question has its answer, the exchange before it dims, so the eye goes to the latest
+    const kept = live.slice(-KEEP), lastAsk = kept.map((el) => el.classList.contains('msg--user')).lastIndexOf(true);
+    kept.forEach((el, i) => el.classList.toggle('is-older', i < lastAsk && kept.at(-1).classList.contains('msg--bot')));
   };
   const bubble = (who, html) => {
     const el = document.createElement('div');

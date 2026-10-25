@@ -119,6 +119,7 @@
 }
 .chat::-webkit-scrollbar { display: none; }
 .chat[hidden] { display: none; }
+.msg.is-older { opacity: 0.35; transition: opacity 600ms var(--ease-out); }
 .msg.is-leaving { animation: msg-out 650ms var(--ease-out) forwards; pointer-events: none; }
 @keyframes msg-out { to { opacity: 0; transform: translateY(-18px) scale(0.98); filter: blur(4px); } }
 .ask.is-chatting .box { margin-top: 12px; }
