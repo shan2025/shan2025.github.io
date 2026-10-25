@@ -4,7 +4,6 @@ import Bar from '../components/Bar.astro';
 import WorkFigure from '../components/WorkFigure.astro';
 import { getCollection } from 'astro:content';
 import { site, resumes, interests } from '../data/site';
-import momo from '../assets/momo.svg?raw'; // Momo, traced into lines, behind the chess board
 import { certifications } from '../data/certifications';
 import '../styles/home.css';
 
@@ -156,7 +155,6 @@ const tabs = [
       </div>
       <div class="board__body">
         <div class="board__stage" aria-label="A chess board of Shadin’s work. Drag to turn it, tap a piece to read it, or move a piece from your side to play his AI.">
-          <div class="board__momo" aria-hidden="true" set:html={momo} />
           <canvas class="board__canvas" aria-hidden="true"></canvas>
         </div>
         <aside class="board__card" aria-live="polite">

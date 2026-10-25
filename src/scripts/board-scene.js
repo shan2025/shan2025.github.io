@@ -15,6 +15,7 @@ import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeom
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { Chess } from 'chess.js';
 import { choose } from './chess-ai.js';
+import momoSvg from '../assets/momo.svg?raw';
 
 export async function start(root) {
   const stage = root.querySelector('.board__stage');
@@ -115,7 +116,21 @@ export async function start(root) {
     return m;
   }));
   const frameGroup = new THREE.Group(); // the board, which settles into place before the pieces fall
-  frameGroup.add(body, top, ...pads, ...squares);
+  // and Momo, drawn on the bottom in the same thin lines: only seen by whoever turns the board over
+  const momo = (() => {
+    const [vx, vy, vw] = momoSvg.match(/viewBox="([^"]+)"/)[1].split(/\s+/).map(Number), size = 7.4, pts = [];
+    for (const [, d] of momoSvg.matchAll(/ d="([^"]+)"/g)) {
+      const xy = [...d.matchAll(/(-?[\d.]+) (-?[\d.]+)/g)].map(([, x, y]) => [((x - vx) / vw - 0.5) * size, (0.5 - (y - vy) / vw) * size]);
+      for (let i = 1; i < xy.length; i++) pts.push(xy[i - 1][0], -0.48, xy[i - 1][1], xy[i][0], -0.48, xy[i][1]);
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
+    const m = new THREE.LineSegments(g, new THREE.LineBasicMaterial({ color: css.getPropertyValue('--ink').trim() || '#eef4fb', transparent: true, opacity: 0 }));
+    m.layers.set(1); // drawn after the lines, not into the buffer
+    m.rotation.y = -Math.PI / 4; // upright when the board, which stands turned 45°, is turned over
+    return m;
+  })();
+  frameGroup.add(body, top, ...pads, ...squares, momo);
   boardGroup.add(frameGroup);
 
   // ---- the pieces: turned on a lathe (profiles are [radius, height]), with crowns, crosses and a carved knight ----
@@ -512,9 +527,10 @@ export async function start(root) {
     built = shown > 0.97; // together enough to play on
     // turned far enough over that you're looking at the bottom?
     const facing = toCamera.y * Math.cos(pitch) + toCamera.z * Math.sin(pitch);
+    momo.material.opacity = c01(-facing * 3) * 0.75; // he shows as the bottom comes round to face you
     if (facing < -0.15 && !peeking) {
       peeking = true;
-      write('// Hey', 'Too curious, aren’t you?', 'Nothing under here but four felt pads. The game is on the other side.');
+      write('// Hey', 'Too curious, aren’t you?', 'Just Momo and four felt pads under here. The game is on the other side.');
     } else if (facing > 0.05 && peeking) {
       peeking = false;
       write(...said);
@@ -553,6 +569,13 @@ export async function start(root) {
     renderer.setRenderTarget(null);
     renderer.clear();
     renderer.render(linesScene, linesCam);
+    if (momo.material.opacity > 0) { // Momo, on top of the lines, while the bottom is turned to you
+      renderer.autoClear = false;
+      camera.layers.set(1);
+      renderer.render(world, camera);
+      camera.layers.set(0);
+      renderer.autoClear = true;
+    }
   };
   function wake() { if (!raf && near && !document.hidden) { last = performance.now(); raf = requestAnimationFrame(frame); } }
   // run while the section is within a screen of view; otherwise stop and hide the canvas
