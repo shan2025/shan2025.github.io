@@ -19,8 +19,7 @@ const date = post.data.date.toLocaleDateString('en-GB', { day: 'numeric', month:
     <article class="sheet">
       <h1 class="sheet__title">{post.data.title}</h1>
       <p class="sheet__meta">
-        <time datetime={post.data.date.toISOString()}>{date}</time>
-        {post.data.source && <>, first posted on {post.data.sourceUrl ? <a class="link" href={post.data.sourceUrl}>{post.data.source}</a> : post.data.source}</>}
+        <time datetime={post.data.date.toISOString()}>{date}</time>{post.data.source && <>, first posted on {post.data.sourceUrl ? <a class="link" href={post.data.sourceUrl}>{post.data.source}</a> : post.data.source}</>}
       </p>
       <div class="prose">
         <Content />

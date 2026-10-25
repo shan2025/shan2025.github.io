@@ -23,6 +23,8 @@
 .prose { margin-top: clamp(32px, 4vw, 48px); display: grid; gap: 1.1em; line-height: 1.7; }
 .prose ul { padding-left: 1.2em; display: grid; gap: 0.4em; }
 .prose a { text-decoration-thickness: 0.07em; text-underline-offset: 0.22em; }
+.prose h2 { margin-top: 0.8em; font-size: var(--step-lead); letter-spacing: -0.025em; line-height: 1.2; }
+.prose blockquote { padding-left: 1.1em; border-left: 2px solid var(--accent); font-size: var(--step-lead); line-height: 1.4; letter-spacing: -0.015em; color: var(--muted); }
 .sheet__back { margin-top: 48px; }
 
 /* a project */
