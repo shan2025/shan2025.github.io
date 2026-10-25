@@ -29,7 +29,7 @@ Humans show a similar behaviour while dreaming. Inside a dream, people often acc
 
 The concept of Artificial General Intelligence is quite far from reality, mainly because of these limitations. At present, systems still have fundamental problems to solve in terms of reliability, grounding, and usability in real-life situations.
 
-AI agents are also one of the major growing trends. These are systems capable of multi-step tasks such as searching, comparing options, placing orders, and managing schedules. The CEO of OpenClaw recently suggested that as many as 80% of today’s standalone apps could fade away as intelligent agents begin handling everyday tasks such as finding products, placing orders, managing routines, and assisting with fitness or diet decisions.
+AI agents are also one of the major growing trends. These are systems capable of multi-step tasks such as searching, comparing options, placing orders, and managing schedules. Peter Steinberger, the creator of OpenClaw, recently suggested that as many as 80% of today’s standalone apps could fade away as intelligent agents begin handling everyday tasks such as finding products, placing orders, managing routines, and assisting with fitness or diet decisions.
 
 At the same time, industries are increasingly turning toward finance as the next major space for AI-driven transformation. Fintech can already perform compliance checks automatically, detect fraud at an earlier stage, offer tailor-made advice, and facilitate cross-border payments. The transformation is underway.
 

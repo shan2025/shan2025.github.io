@@ -45,7 +45,7 @@ const links: [string, string, number?][] = [
 ];
 const mapData = JSON.stringify({ nodes, links: links.filter(([a, b]) => nodes.some((n) => n.id === a) && nodes.some((n) => n.id === b)) });
 
-// ---- The cube: six faces, one for each side of the work; the centre square names the side ----
+// ---- The board: six kinds of chess piece, one for each side of the work ----
 const certLink = (name: string) => certifications.find((c) => c.name.startsWith(name))?.url;
 const skill = (title: string, text: string) => ({ type: 'skill', kind: 'Skill', title, text, href: '/resume/' });
 const cert = (title: string, short: string) => {
@@ -67,20 +67,19 @@ const post = (id: string, label: string) => {
   return { type: 'note', kind: 'Writing', title: p.data.title, label, text: p.data.excerpt, href: `/writing/${p.id}/` };
 };
 type Square = { title: string; label?: string; kind: string; text: string; href?: string };
-// faces are named for where they start: front, right, top, back, left, bottom. Each is a faint tint of
-// grey stone; cube-scene.js carves the names into the blocks.
-const cubeFaces: { key: string; name: string; colour: string; ink: string; text: string; items: Square[] }[] = [
-  { key: 'front', name: 'Projects', colour: '#8e98a8', ink: '#22262e', text: 'Things I built and shipped, and what actually happened.',
+// piece is the letter board-scene.js sets up (r rook, q queen, b bishop, p pawn, n knight, k king); glyph is its white symbol.
+const boardSides: { piece: string; glyph: string; pieceName: string; name: string; text: string; items: Square[] }[] = [
+  { piece: 'r', glyph: '♖', pieceName: 'The rooks', name: 'Projects', text: 'Things I built and shipped, and what actually happened.',
     items: [proj('finchat'), proj('hancod'), { ...proj('wallet-risk'), label: 'Wallet risk' }, { ...proj('spacex-landing'), label: 'Falcon 9' }, { ...proj('mock-interview'), label: 'Mock interviews' }] },
-  { key: 'right', name: 'AI', colour: '#9c95ab', ink: '#22262e', text: 'Agents, retrieval and evaluation: what I build with and keep learning.',
+  { piece: 'q', glyph: '♕', pieceName: 'The queen', name: 'AI', text: 'Agents, retrieval and evaluation: what I build with and keep learning.',
     items: [{ ...cert('RAG for Generative', 'RAG Specialization'), label: 'RAG' }, { ...cert('Introduction to Model Context', 'Intro to MCP'), label: 'MCP' }, cert('AI Fluency', 'AI Fluency'), interest('agents'), interest('evals'), post('agents-that-report-back', 'Agents report back')] },
-  { key: 'top', name: 'Product', colour: '#aab0bb', ink: '#22262e', text: 'Specs, testing and the habit of checking the outcome, not the status.',
+  { piece: 'b', glyph: '♗', pieceName: 'The bishops', name: 'Product', text: 'Specs, testing and the habit of checking the outcome, not the status.',
     items: [{ ...skill('Specs & requirements', 'BRDs, FRDs, FSDs and HFDs for 12+ modules at Hancod, with user stories and acceptance criteria written before design starts.'), label: 'Requirements' }, { ...skill('UAT & defects', 'End-to-end testing at Hancod, from test scenarios to defect closure, across design, engineering and QA.'), label: 'UAT' }, interest('product'), post('ran-is-not-worked', 'Status vs outcome'), { kind: 'Résumé', title: 'Résumé', text: 'Three one-page versions: product, AI and business analysis, and business analysis.', href: '/resume/' }] },
-  { key: 'back', name: 'Data', colour: '#7f8c9c', ink: '#22262e', text: 'Python, SQL and machine learning, from the IBM programme to my own studies.',
+  { piece: 'p', glyph: '♙', pieceName: 'The pawns', name: 'Data', text: 'Python, SQL and machine learning, from the IBM programme to my own studies.',
     items: [skill('Python & ML', 'Pandas, scikit-learn and machine learning, from the IBM Data Science programme to the wallet and Falcon 9 studies.'), { ...skill('SQL & Power BI', 'Funnels, metrics and dashboards in SQL, Power BI and Tableau.'), label: 'SQL & BI' }, { ...cert('IBM Data Science', 'IBM Data Science'), label: 'IBM DS' }, { ...cert('Applied Data Science', 'Applied Data Science'), label: 'Applied DS' }] },
-  { key: 'left', name: 'Growth', colour: '#909c93', ink: '#22262e', text: 'Acquisition and conversion at Hancod, an MBA in FinTech, and the roles I took on at university.',
+  { piece: 'n', glyph: '♘', pieceName: 'The knights', name: 'Growth', text: 'Acquisition and conversion at Hancod, an MBA in FinTech, and the roles I took on at university.',
     items: [skill('Growth', 'Owning user acquisition and conversion for a live service website as Growth Manager Trainee at Hancod.'), { ...edu('MBA, FinTech', 'MBA in Financial Technology, Pondicherry University (Central University), 2024 to 2026.'), label: 'MBA' }, interest('fintech'), { ...act('TEDx Pondicherry', 'Speaker liaison at TEDx Pondicherry University 2025 for G. Karthikeyan, founder of Sristi: coordinating the speaker, the team and university admin.'), label: 'TEDx' }, { ...act('BANQUEST 2024', 'Student coordinator for BANQUEST 2024, the department’s flagship industry–academia programme.'), label: 'BANQUEST' }, post('from-blockchain-to-ai-agents', 'Blockchain to AI')] },
-  { key: 'bottom', name: 'Me', colour: '#a69c94', ink: '#22262e', text: 'Where I studied, where to read me, and how to reach me.',
+  { piece: 'k', glyph: '♔', pieceName: 'The king', name: 'Me', text: 'Where I studied, where to read me, and how to reach me.',
     items: [edu('BCA', 'Bachelor of Computer Applications, Punjab Technical University, Chandigarh Group of Colleges, 2020 to 2023.'), { kind: 'Contact', title: 'Say hello', text: `Hiring, a project, or a question about FinChat? Write to ${site.email}.`, href: `mailto:${site.email}` }, { kind: 'Writing', title: 'Writing', text: 'Notes from building in public.', href: '/writing/' }, { kind: 'Profile', title: 'GitHub', text: 'Code for FinChat, the wallet risk study, the Falcon 9 capstone and more.', href: site.links.github }, { kind: 'Profile', title: 'LinkedIn', text: 'Where I post about what I’m building.', href: site.links.linkedin }] },
 ];
 
@@ -142,34 +141,42 @@ const tabs = [
     </section>
     </div>
 
-    <!-- The cube: six sides of the work, built block by block, sitting on the page (three.js, see cube-scene.js).
-         Its canvas reaches a little past the stage, so the blocks have room to part. -->
-    <section class="cube" id="cube" aria-labelledby="cube-heading">
-      <div class="cube__head">
-        <p class="cube__tag">// 03 &nbsp;The cube</p>
-        <h2 id="cube-heading" class="cube__heading">Every side of my work</h2>
-        <p class="cube__intro">Six sides, one cube. Drag to turn it, tap a block to read it. Scroll and it comes apart. Scramble it if you like: it knows how to solve itself.</p>
+    <!-- The board: six sides of the work as six kinds of chess piece, sitting on the page (three.js, see board-scene.js).
+         Its canvas reaches a little past the stage, so the pieces have room to lift. -->
+    <section class="board" id="board" aria-labelledby="board-heading">
+      <div class="board__head">
+        <p class="board__tag">// 03 &nbsp;The board</p>
+        <h2 id="board-heading" class="board__heading">Every side of my work</h2>
+        <p class="board__intro">Six kinds of piece, six sides of my work. Tap a piece to read about it, drag to turn the board, or play a game against my AI. It plays like me.</p>
       </div>
-      <div class="cube__body">
-        <div class="cube__stage" aria-label="A puzzle cube of Shadin’s work. Drag to turn it, tap a block to read it.">
-          <canvas class="cube__canvas" aria-hidden="true"></canvas>
+      <div class="board__body">
+        <div class="board__stage" aria-label="A chess board of Shadin’s work. Drag to turn it, tap a piece to read it, or play a game against his AI.">
+          <canvas class="board__canvas" aria-hidden="true"></canvas>
+          <p class="board__tip" aria-hidden="true" hidden></p>
         </div>
-        <aside class="cube__card" aria-live="polite">
-          <p class="cube__kind">How it works</p>
-          <h3 class="cube__title">Pick a block</h3>
-          <p class="cube__text">Each side of the cube is one side of my work. Tap a block to read about it, or pick a side below to turn it to you.</p>
-          <ul class="cube__items" hidden></ul>
-          <a class="button cube__link" href="#cube" hidden>Open</a>
-          <div class="cube__sides" role="group" aria-label="Sides of the cube">
-            {cubeFaces.map((f) => <button type="button" class="cube__side" data-face={f.key} style={`--c:${f.colour};--ci:${f.ink}`}>{f.name}</button>)}
+        <aside class="board__card" aria-live="polite">
+          <p class="board__kind">How it works</p>
+          <h3 class="board__title">Pick a piece</h3>
+          <p class="board__text">Each kind of piece is one side of my work: the rooks are my projects, the queen is AI, the king is me. Tap one, pick a side below, or play me.</p>
+          <ul class="board__items" hidden></ul>
+          <a class="button board__link" href="#board" hidden>Open</a>
+          <div class="board__sides" role="group" aria-label="Sides of my work">
+            {boardSides.map((s) => <button type="button" class="board__side" data-piece={s.piece} aria-pressed="false"><span class="board__glyph" aria-hidden="true">{s.glyph}</span>{s.name}</button>)}
           </div>
-          <p class="cube__controls"><button type="button" class="cube__btn" data-act="scramble">Scramble</button><button type="button" class="cube__btn" data-act="solve" disabled>Solve</button></p>
+          <p class="board__controls">
+            <button type="button" class="board__btn board__btn--go" data-act="play" disabled>Play me</button>
+            <button type="button" class="board__btn" data-act="white" hidden>Play white</button>
+            <button type="button" class="board__btn" data-act="black" hidden>Play black</button>
+            <button type="button" class="board__btn" data-act="resign" hidden>Resign</button>
+            <button type="button" class="board__btn board__btn--go" data-act="again" hidden>Play again</button>
+            <button type="button" class="board__btn" data-act="leave" hidden>Back to the board</button>
+          </p>
         </aside>
       </div>
-      <ul class="cube__list">
-        {cubeFaces.map((f) => <li><strong>{f.name}:</strong> {f.items.map((it, i) => <>{i > 0 && ', '}{it.href ? <a href={it.href}>{it.title}</a> : it.title}</>)}</li>)}
+      <ul class="board__list">
+        {boardSides.map((s) => <li><strong>{s.glyph} {s.name}:</strong> {s.items.map((it, i) => <>{i > 0 && ', '}{it.href ? <a href={it.href}>{it.title}</a> : it.title}</>)}</li>)}
       </ul>
-      <script type="application/json" id="cube-data" set:html={JSON.stringify(cubeFaces)} />
+      <script type="application/json" id="board-data" set:html={JSON.stringify(boardSides)} />
     </section>
 
     <!-- The rest of the site, in a panel rising from the bottom of the glow -->
@@ -281,7 +288,7 @@ const tabs = [
   </div>
 
   <script src="../scripts/brain.js"></script>
-  <script src="../scripts/cube.js"></script>
+  <script src="../scripts/board.js"></script>
   <script src="../scripts/tabs.js"></script>
   <script src="../scripts/chat.js"></script>
   <script src="../scripts/mindmap.js"></script>

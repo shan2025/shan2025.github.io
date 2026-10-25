@@ -17,6 +17,18 @@ then monochrome, then round again. One visit keeps one colour across pages. The 
 small script at the top of `src/layouts/Base.astro`. To see all four side by side, open `/themes/`;
 add `?theme=ice` (or `amber`, `emerald`, `mono`) to any address to force one.
 
+## The chess board
+
+Below the map, a wooden chess set (three.js, in `src/scripts/board-scene.js`) holds six sides of the work, one per
+kind of piece: rooks are projects, the queen is AI, bishops are product, pawns are data, knights are growth and the
+king is me. The list, and what each side says, is `boardSides` in `src/pages/index.astro`.
+
+**Play me** starts a game against my AI (`src/scripts/chess-ai.js`), which plays at roughly 800–900. When a game
+starts it reads my recent public games on Chess.com (username `lionheartfc`, set as `CHESS_COM` in
+`board-scene.js`), straight from the visitor's browser, and opens with the moves I play and leans towards my habits.
+If Chess.com can't be reached it plays its own way. The rules come from `chess.js`, pinned to an exact version
+because the AI's search uses its internal move functions.
+
 ## The AI assistant
 
 The "Ask anything about Shadin" box sends questions to `src/pages/api/chat.ts`, a small server function that
