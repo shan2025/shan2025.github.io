@@ -111,8 +111,7 @@
 .chat {
   width: 100%; margin-top: 20px; max-height: min(56svh, 600px); overflow-y: auto;
   display: flex; flex-direction: column; gap: 18px; text-align: left;
-  padding: 40px 22px 8px; border-radius: var(--radius);
-  background: color-mix(in srgb, var(--bg) 82%, transparent); border: 1px solid var(--edge);
+  padding: 40px 22px 8px; /* straight on the page, no panel */
   scroll-behavior: smooth; overscroll-behavior: contain; scrollbar-width: none;
   /* the top of the thread dissolves, so older lines drift out of view instead of piling up */
   -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 56px);
