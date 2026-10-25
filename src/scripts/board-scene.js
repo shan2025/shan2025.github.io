@@ -4,8 +4,8 @@
 // The drawing is lines only: a bright line where something stands in front of something else, a dim one where a
 // surface turns a corner, nothing filled but the dark squares and the black pieces, faintly, as in a chess diagram.
 // The only colour is the site's accent, on the outline of the piece you point at or pick up.
-// It puts itself together as you scroll to it: the frame rises, the 64 squares fly in and lock together, and
-// the pieces drop onto them. Scroll back and it comes apart again, until a game has started.
+// It sets itself up as you scroll to it: the board settles into place and the pieces fall onto it, one after
+// another. Scroll back and they lift off again, until a game has started.
 // Tap a piece to read its side, drag to turn the board any way (underneath, there's a note for the curious), or
 // just move a white piece: that starts a game against Shadin's AI (chess-ai.js, in his style:
 // data/chess-style.json), with the rules kept by chess.js.
@@ -101,14 +101,12 @@ export async function start(root) {
   top.rotation.x = -Math.PI / 2;
   top.position.y = 0.001;
   top.visible = false;
-  // the 64 squares, each its own tile: where it flies in from, and when
-  const tiles = [];
+  // the 64 squares, each its own tile, so the dark ones can be told apart
+  const squares = [];
   for (let f = 0; f < 8; f++) for (let r = 0; r < 8; r++) {
     const mesh = new THREE.Mesh(new THREE.BoxGeometry(1, 0.06, 1), (f + r) % 2 === 0 ? MAT.dark : MAT.plain); // a1 is dark
-    const home = new THREE.Vector3(f - 3.5, -0.027, 3.5 - r);
-    const out = (n) => (Math.random() * 2 - 1) * n;
-    tiles.push({ mesh, home, from: home.clone().add(new THREE.Vector3(out(5), 1.5 + Math.random() * 2.5, out(4))), // near the board, not over the heading
-      spin: new THREE.Quaternion().setFromEuler(new THREE.Euler(out(Math.PI), out(Math.PI), out(Math.PI))), delay: Math.random() });
+    mesh.position.set(f - 3.5, -0.027, 3.5 - r);
+    squares.push(mesh);
   }
   const TABLE = -0.47; // the ground the board stands on, where taken pieces go
   // underneath: four felt pads, for whoever turns it over
@@ -117,9 +115,9 @@ export async function start(root) {
     m.position.set(sx * 3.9, -0.5, sz * 3.9);
     return m;
   }));
-  const frameGroup = new THREE.Group(); // the frame rises into place first
-  frameGroup.add(body, top, ...pads);
-  boardGroup.add(frameGroup, ...tiles.map((t) => t.mesh));
+  const frameGroup = new THREE.Group(); // the board, which settles into place before the pieces fall
+  frameGroup.add(body, top, ...pads, ...squares);
+  boardGroup.add(frameGroup);
 
   // ---- the pieces: turned on a lathe (profiles are [radius, height]), with crowns, crosses and a carved knight ----
   const arc = (cy, r, a0, a1, n = 10) => Array.from({ length: n + 1 }, (_, i) => {
@@ -455,24 +453,16 @@ export async function start(root) {
     setTimeout(readBrain, 1500); // his games, ready before anyone's first move
   };
 
-  // ---- putting itself together, as far as you've scrolled: 0 is in pieces in the air, 1 is set up ----
-  const NONE = new THREE.Quaternion();
+  // ---- setting itself up, as far as you've scrolled: 0 is the pieces up in the air, 1 is set up ----
   const c01 = (t) => Math.max(0, Math.min(1, t)), easeOut = (t) => 1 - (1 - t) ** 3;
   let shown = reduced ? 1 : 0, settled = -1;
   const settle = (k) => {
     if (k === settled) return;
     settled = k;
-    const b = easeOut(c01(k / 0.3)); // the frame rises first
-    frameGroup.position.y = -(1 - b) * 3;
+    frameGroup.position.y = -(1 - easeOut(c01(k / 0.25))) * 1.2; // the board settles into place
     frameGroup.visible = k > 0.001;
-    for (const t of tiles) { // then the squares fly in and lock together
-      const e = easeOut(c01((k - 0.1 - t.delay * 0.4) / 0.3));
-      t.mesh.position.lerpVectors(t.from, t.home, e);
-      t.mesh.quaternion.slerpQuaternions(t.spin, NONE, e);
-      t.mesh.visible = k > 0.001;
-    }
-    for (const p of pieces) { // and the pieces drop on, falling faster as they go
-      const e = c01((k - 0.6 - p.delay * 0.28) / 0.12);
+    for (const p of pieces) { // then the pieces fall onto it, one after another, faster as they go
+      const e = c01((k - 0.15 - p.delay * 0.65) / 0.2);
       p.drop = 3 * (1 - e * e);
       p.mesh.visible = e > 0;
     }

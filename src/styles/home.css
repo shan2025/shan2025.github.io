@@ -159,8 +159,7 @@
 .board__stage { position: relative; z-index: 3; height: clamp(420px, 62svh, 660px); touch-action: none; cursor: grab; user-select: none; -webkit-user-select: none; }
 .board__stage:active { cursor: grabbing; }
 .board__stage.is-pointing { cursor: pointer; }
-/* the stage is a figure: a quiet frame, with small labels in its corners (the board itself can reach past it) */
-.board__stage { border: 1px solid var(--edge); border-radius: var(--radius); }
+/* small labels in the stage's corners, as on a figure */
 .board__label { position: absolute; z-index: 2; margin: 0; pointer-events: none; font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace; font-size: 0.6875rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
 .board__label--tl { top: 14px; left: 16px; }
 .board__label--tr { top: 14px; right: 16px; }
@@ -172,7 +171,7 @@
 html:not(.js) .board__list, .board.no-3d .board__list { display: grid; }
 html:not(.js) .board__body, .board.no-3d .board__body { display: none; }
 
-.board__card { position: relative; z-index: 1; padding: clamp(22px, 2.6vw, 34px); border-radius: var(--radius); background: color-mix(in srgb, var(--bg) 82%, transparent); border: 1px solid var(--edge); display: grid; gap: 12px; align-content: start; justify-items: start; }
+.board__card { position: relative; z-index: 1; padding: clamp(22px, 2.6vw, 34px); display: grid; gap: 12px; align-content: start; justify-items: start; } /* straight on the page, no panel */
 .board__kind { color: var(--picked); font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace; font-size: 0.8125rem; }
 .board__title { font-size: var(--step-lead); letter-spacing: -0.025em; line-height: 1.2; }
 .board__items { list-style: none; padding: 0; display: grid; gap: 6px; }
