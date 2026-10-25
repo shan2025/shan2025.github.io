@@ -286,8 +286,9 @@ export async function start(root) {
   const colourOf = (p) => (p.white ? 'w' : 'b');
 
   // ---- the game: you against Shadin's AI (chess-ai.js), which plays the way he does ----
-  // There's always a game waiting: move a white piece and it starts. Before that, any piece you touch tells you
-  // its side of the work.
+  // There's always a game waiting, and you play the side nearest you, as at a real board: move a white piece and
+  // it starts; turn the board round and pick up a black piece, and the AI opens as white. Before that, any piece
+  // you touch tells you its side of the work.
   // when you win: a line that makes no sense, a "Why?" button, and an answer that makes even less
   const NONSENSE = [
     ['Life is like a soap.', 'Nobody knows. Now go away.'],
@@ -301,7 +302,7 @@ export async function start(root) {
   ];
   let why = '';
   const KIND = '// You vs Shadin’s AI · about 850';
-  const you = 'w'; // you play white: your pieces start nearest you
+  let you = 'w'; // the side you play: whichever is nearest you when the game starts
   const btn = Object.fromEntries([...root.querySelectorAll('[data-act]')].map((b) => [b.dataset.act, b]));
   const sidesEl = root.querySelector('.board__sides');
   const intro = [card.kind.textContent, card.title.textContent, card.text.textContent];
@@ -324,7 +325,7 @@ export async function start(root) {
   const taken = { w: 0, b: 0 };
   // pieces you take stand on the table to your right of the board; pieces it takes, to its right
   const besideBoard = (p) => {
-    const c = colourOf(p), i = taken[c]++, side = c !== you ? 1 : -1;
+    const c = colourOf(p), i = taken[c]++, side = (c !== you ? 1 : -1) * (you === 'w' ? 1 : -1);
     return new THREE.Vector3(side * (5.25 + Math.floor(i / 8) * 0.75), TABLE, side * ((i % 8) - 3.5) * 0.85);
   };
   const select = (p) => { sel = p; wake(); };
@@ -333,12 +334,13 @@ export async function start(root) {
     picked = null;
     say(`// ${s.pieceName}`, s.name, yours ? `${s.text} Move it to start a game against my AI.` : s.text, s.items);
   };
+  const begin = () => { // the game starts: the side buttons go, and the card follows the game
+    show('game');
+    picked = null;
+    root.querySelectorAll('.board__side').forEach((b) => b.setAttribute('aria-pressed', 'false'));
+  };
   const play = async (move) => {
-    if (mode === 'explore') { // your first move starts the game
-      show('game');
-      picked = null;
-      root.querySelectorAll('.board__side').forEach((b) => b.setAttribute('aria-pressed', 'false'));
-    }
+    if (mode === 'explore') begin(); // your first move as white starts the game
     const m = game.move(move);
     const p = pieceOn(m.from), steps = [], ms = reduced ? 0 : 560;
     sel = null;
@@ -368,10 +370,10 @@ export async function start(root) {
       return;
     }
     thinking = true;
-    const first = game.history().length === 1;
-    say(KIND, first ? 'Game on' : 'Thinking…', first
-      ? `You played ${lastMove.san}. My AI learned from ${brain?.games ? `${brain.games.toLocaleString('en')} of my games` : 'my games'} on Chess.com and plays like me, at about my level: 800–900.`
-      : `You played ${lastMove.san}.`);
+    const n = game.history().length;
+    const about = `My AI learned from ${brain?.games ? `${brain.games.toLocaleString('en')} of my games` : 'my games'} on Chess.com and plays like me, at about my level: 800–900.`;
+    say(KIND, n <= 1 ? 'Game on' : 'Thinking…', n === 0 ? `You’re black, so my AI opens, as white. ${about}`
+      : n === 1 ? `You played ${lastMove.san}. ${about}` : `You played ${lastMove.san}.`);
     setTimeout(async () => {
       await readBrain();
       thinking = false;
@@ -411,7 +413,7 @@ export async function start(root) {
     busy = true;
     show('explore');
     say(...intro);
-    viewAim = { yaw: 0, pitch: 0 }; // white back in front of you
+    viewAim = { yaw: you === 'w' ? 0 : Math.PI, pitch: 0 }; // level again, your side in front of you
     await setUpAgain();
     busy = false;
   });
@@ -436,8 +438,16 @@ export async function start(root) {
     return f >= 0 && f < 8 && r >= 0 && r < 8 ? nameOf([f, r]) : null;
   };
   const tap = (e) => {
-    if (mode === 'over' || busy || thinking || moving.length || game.turn() !== you) return;
+    if (mode === 'over' || busy || thinking || moving.length) return;
+    if (mode === 'explore') you = Math.cos(yaw) >= 0 ? 'w' : 'b'; // you play the side nearest you
     const p = hit(e), target = squareAt(e);
+    if (game.turn() !== you) { // black, before the first move: pick up one of yours and the AI opens
+      if (mode !== 'explore') return;
+      const pick = [p, target && pieceOn(target)].find((q) => q && q.sq && colourOf(q) === you);
+      if (pick) { select(pick); begin(); next(); }
+      else if (p && p.sq) readSide(p.type, false);
+      return;
+    }
     const legal = sel ? game.moves({ square: nameOf(sel.sq), verbose: true }).filter((x) => !x.promotion || x.promotion === 'q') : [];
     const to = (name) => legal.find((x) => x.to === name);
     // the square under the pointer comes first (a tall piece nearer you can stand over it), then the piece touched
@@ -552,9 +562,9 @@ export async function start(root) {
       write(...said);
     }
     let springing = false;
-    for (const p of pieces) { // the picked kind (or, in a game, the piece in hand) is lifted off the board
+    for (const p of pieces) { // the piece in hand (or the picked kind) is lifted off the board; the one under the pointer rises a little
       const up = sel === p || (mode === 'explore' && picked === p.type);
-      const want = up ? 0.15 : 0;
+      const want = up ? 0.22 : p === hovered ? 0.14 : 0;
       p.liftV += (160 * (want - p.lift) - 17 * p.liftV) * dt;
       p.lift += p.liftV * dt;
       if (Math.abs(want - p.lift) > 1e-3 || Math.abs(p.liftV) > 1e-3) springing = true;
