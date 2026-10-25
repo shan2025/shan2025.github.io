@@ -159,13 +159,7 @@
 .board__stage { position: relative; z-index: 3; height: clamp(420px, 62svh, 660px); touch-action: none; cursor: grab; user-select: none; -webkit-user-select: none; }
 .board__stage:active { cursor: grabbing; }
 .board__stage.is-pointing { cursor: pointer; }
-/* small labels in the stage's corners, as on a figure */
-.board__label { position: absolute; z-index: 2; margin: 0; pointer-events: none; font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace; font-size: 0.6875rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
-.board__label--tl { top: 14px; left: 16px; }
-.board__label--tr { top: 14px; right: 16px; }
-.board__label--bl { bottom: 14px; left: 16px; }
-.board__label--br { bottom: 14px; right: 16px; color: var(--ink); }
-.board__canvas { position: absolute; top: -95%; bottom: -20%; left: -16%; right: -16%; width: 132%; height: 215%; pointer-events: none; display: block; } /* up behind the heading: the pieces fall out of it */
+.board__canvas { position: absolute; top: -20%; bottom: -20%; left: -16%; right: -16%; width: 132%; height: 140%; pointer-events: none; display: block; }
 /* the plain list: for no script, or no WebGL */
 .board__list { list-style: none; padding: 0; margin-top: 24px; display: none; gap: 10px; }
 html:not(.js) .board__list, .board.no-3d .board__list { display: grid; }

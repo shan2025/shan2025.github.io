@@ -5,7 +5,7 @@
 // surface turns a corner, nothing filled but the dark squares and the black pieces, faintly, as in a chess diagram.
 // The only colour is the site's accent, on the outline of the piece you point at or pick up.
 // It sets itself up as you scroll to it: the board settles into place and the pieces fall onto it, one after
-// another, out of the heading above. Scroll on past and they rise back up into it; until a game has started.
+// another. Scroll on past, or back, and they rise off it again; until a game has started.
 // Tap a piece to read its side, drag to turn the board any way (underneath, there's a note for the curious), or
 // just move a white piece: that starts a game against Shadin's AI (chess-ai.js, in his style:
 // data/chess-style.json), with the rules kept by chess.js.
@@ -19,7 +19,6 @@ import { choose } from './chess-ai.js';
 export async function start(root) {
   const stage = root.querySelector('.board__stage');
   const canvas = root.querySelector('.board__canvas');
-  const readOut = root.querySelector('.board__read');
   const sides = JSON.parse(root.querySelector('#board-data').textContent);
   const sideOf = Object.fromEntries(sides.map((s) => [s.piece, s])); // 'r' → the rooks' side
   const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -406,11 +405,8 @@ export async function start(root) {
     select(pick && pick !== sel ? pick : null);
   };
   let from = null, moved = 0, hovered = null, built = false;
-  const point = (p, e) => {
+  const point = (p) => {
     if (p && mode === 'game' && (!p.sq || colourOf(p) !== you || game.turn() !== you)) p = null; // in a game, only your own pieces answer
-    // the read-out in the corner names what's under the pointer, in a few words, or says rest
-    const square = !p && e ? squareAt(e) : null;
-    readOut.textContent = peeking ? 'underneath' : p ? [p.sq && nameOf(p.sq), NAMES[p.type].toLowerCase(), mode === 'explore' && sideOf[p.type].name.toLowerCase()].filter(Boolean).join(' · ') : square || 'rest';
     if (p === hovered) return;
     hovered = p;
     stage.classList.toggle('is-pointing', !!p && mode !== 'over');
@@ -438,7 +434,7 @@ export async function start(root) {
     if (e.pointerType !== 'mouse' || !built || !near) return;
     const r = stage.getBoundingClientRect();
     const inside = e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom;
-    point(inside ? hit(e) : null, e);
+    point(inside ? hit(e) : null);
   });
   stage.addEventListener('pointerleave', () => point(null));
   addEventListener('pointerup', (e) => {
@@ -463,7 +459,7 @@ export async function start(root) {
     frameGroup.visible = k > 0.001;
     for (const p of pieces) { // then the pieces fall onto it, one after another, faster as they go
       const e = c01((k - 0.15 - p.delay * 0.65) / 0.2);
-      p.drop = fall * (1 - e * e);
+      p.drop = 3 * (1 - e * e);
       p.mesh.visible = e > 0;
     }
   };
@@ -478,18 +474,12 @@ export async function start(root) {
   // ---- size: the board sits in the middle of its canvas, sized to the stage ----
   const toCamera = new THREE.Vector3();
   const EL = Math.asin(0.5); // the 2:1 view of an isometric figure
-  const heading = root.querySelector('.board__heading');
-  let fall = 3; // how high the pieces fall from: the heading's height above the board
   const resize = () => {
     const w = canvas.clientWidth, h = canvas.clientHeight;
     if (!w || !h) return;
     renderer.setSize(w, h, false);
     const unit = Math.min(stage.clientWidth * 0.84 / 12.8, stage.clientHeight * 0.92 / 8); // pixels per square; 12.8 is the board's diagonal, so it fits turned any way
-    // the canvas reaches far up behind the heading, so the view is shifted to keep the board in the middle of the stage
-    const cr = canvas.getBoundingClientRect(), sr = stage.getBoundingClientRect(), hr = heading.getBoundingClientRect();
-    const dy = sr.top + sr.height / 2 - (cr.top + cr.height / 2);
-    Object.assign(camera, { left: -w / 2 / unit, right: w / 2 / unit, top: (h / 2 + dy) / unit, bottom: -(h / 2 - dy) / unit });
-    fall = Math.max(3, (sr.top + sr.height / 2 - (hr.top + hr.height / 2)) / (Math.cos(EL) * unit));
+    Object.assign(camera, { left: -w / 2 / unit, right: w / 2 / unit, top: h / 2 / unit, bottom: -h / 2 / unit });
     settled = -1;
     camera.position.set(0, Math.sin(EL), Math.cos(EL)).multiplyScalar(30);
     camera.lookAt(0, 0.2, 0);
@@ -525,11 +515,9 @@ export async function start(root) {
     if (facing < -0.15 && !peeking) {
       peeking = true;
       write('// Hey', 'Too curious, aren’t you?', 'Nothing under here but four felt pads. The game is on the other side.');
-      readOut.textContent = 'underneath';
     } else if (facing > 0.05 && peeking) {
       peeking = false;
       write(...said);
-      readOut.textContent = 'rest';
     }
     let springing = false;
     for (const p of pieces) { // the piece in hand (or the picked kind) is lifted off the board; the one under the pointer rises a little
