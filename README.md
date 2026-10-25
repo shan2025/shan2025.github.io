@@ -22,6 +22,8 @@ add `?theme=ice` (or `amber`, `emerald`, `mono`) to any address to force one.
 Below the map, a wooden chess set (three.js, in `src/scripts/board-scene.js`) holds six sides of the work, one per
 kind of piece: rooks are projects, the queen is AI, bishops are product, pawns are data, knights are growth and the
 king is me. The list, and what each side says, is `boardSides` in `src/pages/index.astro`.
+It puts itself together as you scroll to it (the frame rises, the 64 squares fly in, the pieces drop on), and
+comes apart again if you scroll back, until a game has started.
 
 **Play me** starts a game against my AI (`src/scripts/chess-ai.js`), which plays at roughly 800–900, about my
 Chess.com rapid rating. It plays in my style from `src/data/chess-style.json`: the moves I play in the opening, from

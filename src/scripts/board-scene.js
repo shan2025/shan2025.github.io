@@ -2,8 +2,10 @@
 // projects, the queen is AI, the king is me, and so on; the list lives in index.astro). It's drawn on a
 // see-through canvas that reaches a little past its stage. The board sits on a wooden table that fades into the
 // page; pieces taken in a game stand on the table beside it. No glows or highlights: a piece you pick up lifts.
+// It puts itself together as you scroll to it: the frame rises, the 64 squares fly in and lock together, and
+// the pieces drop onto them. Scroll back and it comes apart again, until a game has started.
 // Tap a piece to read its side, drag to turn the board any way (underneath, there's a note for the curious), or
-// just move a white piece: that starts a game against Shadin's AI (chess-ai.js, about 850, in his style:
+// just move a white piece: that starts a game against Shadin's AI (chess-ai.js, in his style:
 // data/chess-style.json), with the rules kept by chess.js.
 
 import * as THREE from 'three';
@@ -84,21 +86,26 @@ export async function start(root) {
   // ---- the board: eight by eight in maple and walnut, set in a darker frame lettered a–h and 1–8 ----
   // One square is one unit; files run along x (a on the left), ranks along z (white's side, rank 1, nearest you).
   const TOP = 9.04, RIM = (TOP - 8) / 2;
-  const boardTex = (() => {
-    const S = 2048, px = S / TOP, sq = px, edge = RIM * px;
+  // the whole top, painted at once: the frame with its inlay and letters, and either the squares or, for the frame
+  // on its own, the dark recess they sit in
+  const paintBoard = (S, squares) => {
+    const sq = S / TOP, edge = RIM * sq, k = S / 2048;
     const c = document.createElement('canvas');
     c.width = c.height = S;
     const g = c.getContext('2d');
     g.drawImage(FRAME, 0, 0, S, S);
     g.fillStyle = 'rgba(214,184,124,0.55)'; // a thin inlay round the squares
-    g.fillRect(edge - 7, edge - 7, 8 * sq + 14, 8 * sq + 14);
-    for (let f = 0; f < 8; f++) for (let r = 0; r < 8; r++) {
+    g.fillRect(edge - 7 * k, edge - 7 * k, 8 * sq + 14 * k, 8 * sq + 14 * k);
+    if (!squares) {
+      g.fillStyle = '#24150c';
+      g.fillRect(edge, edge, 8 * sq, 8 * sq);
+    } else for (let f = 0; f < 8; f++) for (let r = 0; r < 8; r++) {
       const tile = (f + r) % 2 === 0 ? WALNUT : MAPLE; // a1 is dark
       const w = 160, sx = Math.random() * (384 - w), sy = Math.random() * (384 - w);
       g.drawImage(tile, sx, sy, w, w, edge + f * sq, edge + (7 - r) * sq, sq + 0.5, sq + 0.5);
     }
     g.fillStyle = 'rgba(230,206,156,0.8)';
-    g.font = '600 52px Switzer, system-ui, sans-serif';
+    g.font = `600 ${Math.round(52 * k)}px Switzer, system-ui, sans-serif`;
     g.textAlign = 'center';
     g.textBaseline = 'middle';
     for (let i = 0; i < 8; i++) {
@@ -106,7 +113,7 @@ export async function start(root) {
       g.fillText(String(8 - i), edge / 2, edge + (i + 0.5) * sq);
     }
     return texture(c);
-  })();
+  };
 
   const world = new THREE.Scene();
   const pmrem = new THREE.PMREMGenerator(renderer);
@@ -132,10 +139,23 @@ export async function start(root) {
   const body = new THREE.Mesh(new RoundedBoxGeometry(TOP + 0.16, 0.42, TOP + 0.16, 4, 0.08), satin(texture(FRAME, 1, Math.PI / 2), { envMapIntensity: 0.45 }));
   body.position.y = -0.21;
   body.receiveShadow = body.castShadow = true;
-  const top = new THREE.Mesh(new THREE.PlaneGeometry(TOP, TOP), satin(boardTex));
+  const top = new THREE.Mesh(new THREE.PlaneGeometry(TOP, TOP), satin(paintBoard(1024, false))); // the frame; also what taps are aimed at
   top.rotation.x = -Math.PI / 2;
-  top.position.y = 0.002;
+  top.position.y = 0.001;
   top.receiveShadow = true;
+  // the 64 squares, each its own tile cut from the painted board: where it flies in from, and when
+  const squaresMat = satin(paintBoard(2048, true));
+  const tiles = [];
+  for (let f = 0; f < 8; f++) for (let r = 0; r < 8; r++) {
+    const geo = new THREE.BoxGeometry(1, 0.06, 1), uv = geo.attributes.uv;
+    for (let i = 0; i < uv.count; i++) uv.setXY(i, (f + RIM + uv.getX(i)) / TOP, (r + RIM + uv.getY(i)) / TOP);
+    const mesh = new THREE.Mesh(geo, squaresMat);
+    mesh.castShadow = mesh.receiveShadow = true;
+    const home = new THREE.Vector3(f - 3.5, -0.027, 3.5 - r); // its top just above the frame's recess
+    const out = (n) => (Math.random() * 2 - 1) * n;
+    tiles.push({ mesh, home, from: home.clone().add(new THREE.Vector3(out(5), 1.5 + Math.random() * 2.5, out(4))), // near the board, not over the heading
+      spin: new THREE.Quaternion().setFromEuler(new THREE.Euler(out(Math.PI), out(Math.PI), out(Math.PI))), delay: Math.random() });
+  }
   // the table the board stands on: dark walnut, fading out into the page at its edges
   const TABLE = -0.42; // its surface, level with the bottom of the board
   const table = (() => {
@@ -175,7 +195,9 @@ export async function start(root) {
     m.position.y = -0.423;
     return m;
   })();
-  boardGroup.add(table, body, top, felt);
+  const frameGroup = new THREE.Group(); // the frame rises into place first
+  frameGroup.add(body, top, felt);
+  boardGroup.add(table, frameGroup, ...tiles.map((t) => t.mesh));
 
   // ---- the pieces: turned on a lathe (profiles are [radius, height]), with crowns, crosses and a carved knight ----
   const arc = (cy, r, a0, a1, n = 10) => Array.from({ length: n + 1 }, (_, i) => {
@@ -233,6 +255,7 @@ export async function start(root) {
   setUp(1, 'pppppppp', true);
   setUp(6, 'pppppppp', false);
   setUp(7, 'rnbqkbnr', false);
+  pieces.forEach((p, i) => { p.drop = 0; p.delay = i / (pieces.length - 1); }); // they land white first, rank by rank
   const meshes = pieces.map((p) => p.mesh);
 
   // ---- the card ----
@@ -301,7 +324,7 @@ export async function start(root) {
     ['Clouds are just the sky’s laundry.', 'Don’t look at me like that. Go away.'],
   ];
   let why = '';
-  const KIND = '// You vs Shadin’s AI · about 850';
+  const KIND = '// You vs Shadin’s AI';
   let you = 'w'; // the side you play: whichever is nearest you when the game starts
   const btn = Object.fromEntries([...root.querySelectorAll('[data-act]')].map((b) => [b.dataset.act, b]));
   const sidesEl = root.querySelector('.board__sides');
@@ -371,7 +394,7 @@ export async function start(root) {
     }
     thinking = true;
     const n = game.history().length;
-    const about = `My AI learned from ${brain?.games ? `${brain.games.toLocaleString('en')} of my games` : 'my games'} on Chess.com and plays like me, at about my level: 800–900.`;
+    const about = `My AI learned from ${brain?.games ? `${brain.games.toLocaleString('en')} of my games` : 'my games'} on Chess.com and plays like me.`;
     say(KIND, n <= 1 ? 'Game on' : 'Thinking…', n === 0 ? `You’re black, so my AI opens, as white. ${about}`
       : n === 1 ? `You played ${lastMove.san}. ${about}` : `You played ${lastMove.san}.`);
     setTimeout(async () => {
@@ -404,7 +427,7 @@ export async function start(root) {
   btn.resign.addEventListener('click', () => {
     if (mode !== 'game') return;
     show('over');
-    say(KIND, 'You resigned', 'Shadin’s AI takes this one. It’s only about 850, so you’ll get it next time.');
+    say(KIND, 'You resigned', 'Shadin’s AI takes this one. You’ll get it next time.');
   });
   btn.again.addEventListener('click', async () => {
     game = new Chess();
@@ -510,10 +533,37 @@ export async function start(root) {
   addEventListener('pointercancel', () => { from = null; });
 
   const finishBuild = () => {
-    built = true;
     busy = false;
     show('explore');
     setTimeout(readBrain, 1500); // his games, ready before anyone's first move
+  };
+
+  // ---- putting itself together, as far as you've scrolled: 0 is in pieces in the air, 1 is set up ----
+  const NONE = new THREE.Quaternion();
+  const c01 = (t) => Math.max(0, Math.min(1, t)), easeOut = (t) => 1 - (1 - t) ** 3;
+  let shown = reduced ? 1 : 0, tableFade = 1, settled = -1;
+  const settle = (k) => {
+    if (k === settled) return;
+    settled = k;
+    const b = easeOut(c01(k / 0.3)); // the frame rises first
+    frameGroup.position.y = -(1 - b) * 3;
+    frameGroup.visible = k > 0.001;
+    tableFade = b;
+    for (const t of tiles) { // then the squares fly in and lock together
+      const e = easeOut(c01((k - 0.1 - t.delay * 0.4) / 0.3));
+      t.mesh.position.lerpVectors(t.from, t.home, e);
+      t.mesh.quaternion.slerpQuaternions(t.spin, NONE, e);
+      t.mesh.visible = k > 0.001;
+    }
+    for (const p of pieces) { // and the pieces drop on, falling faster as they go
+      const e = c01((k - 0.6 - p.delay * 0.28) / 0.12);
+      p.drop = 3 * (1 - e * e);
+      p.mesh.visible = e > 0;
+    }
+  };
+  const scrolled = () => { // how far the stage has come up the screen: 0 as it appears, 1 once it's well in view
+    if (reduced || mode !== 'explore') return 1; // once a game has started, it stays together
+    return c01((innerHeight - stage.getBoundingClientRect().top) / (innerHeight * 0.55));
   };
 
   // ---- size: the board sits in the middle of its canvas, sized to the stage ----
@@ -550,7 +600,12 @@ export async function start(root) {
     }
     turnGroup.rotation.y = yaw;
     tiltGroup.rotation.x = pitch;
-    table.material.opacity = Math.max(0, 1 - Math.abs(pitch) / 0.3); // lift the board off the table and the table goes
+    const aimed = scrolled();
+    shown += (aimed - shown) * Math.min(1, dt * 7);
+    if (Math.abs(aimed - shown) < 1e-3) shown = aimed;
+    settle(shown);
+    built = shown > 0.97; // together enough to play on
+    table.material.opacity = Math.max(0, 1 - Math.abs(pitch) / 0.3) * tableFade; // lift the board off the table and the table goes
     table.visible = table.material.opacity > 0.01;
     // turned far enough over that you're looking at the bottom?
     const facing = toCamera.y * Math.cos(pitch) + toCamera.z * Math.sin(pitch);
@@ -575,9 +630,9 @@ export async function start(root) {
       m.p.mesh.position.y += Math.sin(Math.PI * e) * m.hop;
       if (k >= 1) { m.p.mesh.position.copy(m.to); moving.splice(i, 1); m.done(); }
     }
-    for (const p of pieces) if (!moving.some((m) => m.p === p)) p.mesh.position.y = p.y0 + p.lift;
+    for (const p of pieces) if (!moving.some((m) => m.p === p)) p.mesh.position.y = p.y0 + p.lift + p.drop;
     renderer.render(world, camera);
-    const busyFrame = moving.length || springing || yawV || viewAim;
+    const busyFrame = moving.length || springing || yawV || viewAim || shown !== aimed;
     if (near && !document.hidden && busyFrame) raf = requestAnimationFrame(frame);
   };
   function wake() { if (!raf && near && !document.hidden) { last = performance.now(); raf = requestAnimationFrame(frame); } }
