@@ -33,4 +33,7 @@ export const interests = [
   { id: 'evals', name: 'Evals', phrase: 'how to evaluate them', note: 'Deciding what “worked” means before you build, then checking the real result, not the report.' },
   { id: 'growth', name: 'Growth', phrase: 'growth and conversion', note: 'My day job at Hancod: who arrives, who stays, and what makes them act.' },
   { id: 'product', name: 'Product', phrase: 'product management', note: 'Turning a messy goal into a spec engineers can build, then measuring what shipped.' },
+  { id: 'psychology', name: 'Psychology', phrase: 'psychology', note: 'Why people decide the way they do: the part of growth and product that the numbers alone don’t explain.' },
+  { id: 'neuroscience', name: 'Neuroscience', phrase: 'neuroscience', note: 'How real brains learn, remember and predict, and what that says about the AI systems I build.' },
+  { id: 'philosophy', name: 'Philosophy', phrase: 'philosophy', note: 'Mind, meaning and ethics: questions that come back the more I work with AI.' },
 ];

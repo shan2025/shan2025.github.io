@@ -29,6 +29,9 @@
     ['data', 'Data', /data|sql|python|power bi|tableau|machine learning|ml\b/i],
     ['writing', 'Writing', /writ|post|blog|note|substack|article/i],
     ['hire', 'Say hello', /hire|hiring|role|job|contact|email|reach|open to|résumé|resume|cv/i],
+    ['psychology', 'Psychology', /psycholog|behaviou?r|bias|decision/i],
+    ['neuro', 'Neuroscience', /neuro|brain|cognit/i],
+    ['philosophy', 'Philosophy', /philosoph|ethic|conscious|meaning/i],
   ];
 
   // ---- a seeded random, so the shapes are the same on every visit ----
