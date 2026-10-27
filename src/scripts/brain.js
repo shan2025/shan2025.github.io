@@ -176,18 +176,20 @@
     settled = false;
   };
 
-  // the order it plays in, over and over while the opening is on screen: brain → idea → brain
+  // the shapes it steps through, one per click: brain → idea → brain → …
   const ORDER = [1, 0];
-  let step = 0, nextAt = 0;
+  let step = 0;
   const plasticity = (now) => {
-    if (reduced.matches) return;
-    if (p > 0.2) { if (shape !== 0) morph(0, now); nextAt = 0; return; } // below the opening it stays a brain
-    if (!settled) return;
-    if (!nextAt) { nextAt = now + 1600; return; }
-    if (now < nextAt) return;
-    morph(ORDER[step++ % ORDER.length], now);
-    nextAt = 0;
+    // below the opening it always settles back to a brain; the click-driven changes only happen up top
+    if (p > 0.2 && shape !== 0) { morph(0, now); step = 0; }
   };
+  // a click on the brain (while it's the opening and has settled) reshapes it to the next form
+  const reshape = () => {
+    if (reduced.matches || p > 0.2 || !settled) return;
+    morph(ORDER[step++ % ORDER.length], performance.now());
+    wake();
+  };
+  canvas.addEventListener('click', reshape);
 
   const colours = () => {
     const cs = getComputedStyle(document.documentElement);

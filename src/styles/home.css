@@ -25,6 +25,8 @@
 .hero { --p: 1; }
 .js .hero { --p: 0; } /* brain.js keeps --p at how far you've scrolled from the opening to the chat, 0 → 1 */
 .brain { position: sticky; z-index: 0; top: 0; display: block; width: 100%; height: 100svh; margin-bottom: -100svh; pointer-events: none; transform: scale(calc(1 - var(--p) * 0.1)); }
+/* while the opening is in view the brain takes clicks, so tapping it reshapes the neurons; the cue stays above it */
+.js .brain { pointer-events: auto; cursor: pointer; }
 .ask { position: relative; z-index: 1; }
 
 /* the hand-off: as you scroll, the opening fades up and away while the chat and its glow rise into place */

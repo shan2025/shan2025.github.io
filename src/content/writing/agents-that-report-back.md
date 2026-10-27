@@ -11,4 +11,4 @@ Here's what it actually looks like: agents answering questions, sending me a dai
 
 What I'm proudest of isn't any single agent. It's that they keep working when I'm not there, and every result is checked before it reaches me.
 
-You can try FinChat at [finchat-6.onrender.com](https://finchat-6.onrender.com).
+You can try FinChat at [finchat-sg.onrender.com](https://finchat-sg.onrender.com/finchat_login.html).
