@@ -25,12 +25,20 @@ FinChat results, with their exact scope: for about a week, scheduled missions we
 Wallet risk study: a classifier for high-risk crypto wallets on a synthetic, imbalanced dataset (Python, scikit-learn). It scored 78% accuracy but caught none of the high-risk wallets, so the study reports recall and ROC-AUC instead. Code: https://github.com/shan2025/crypto-wallet-risk-prediction
 Falcon 9 landing prediction (IBM Applied Data Science capstone): predicts whether a SpaceX Falcon 9 first stage lands. Data from the SpaceX API, cleaning, SQL (SQLite) analysis, EDA with Matplotlib and Seaborn, a Folium map of launch sites, a Plotly Dash dashboard (choose a launch site and payload range to see success rates), and four tuned classifiers. Logistic regression, SVM and KNN each got 83.3% test accuracy; the decision tree had the best cross-validation score (88.9%) but only 66.7% on the test set. Code: https://github.com/shan2025/spacex-falcon9-landing-prediction
 Mock Interview System (BCA course project): a web platform for students to practise for placements with frequently asked technical and HR questions inspired by major tech companies; built with PHP, Java, HTML and CSS, with Python scripts. Planned next: an AI interviewer with feedback, a performance dashboard and adaptive difficulty. Code: https://github.com/shan2025/mock-interview-system
+
+Substack: he writes on Substack under the publication "Labyrinth of Dreams" (profile: https://substack.com/@shadin12), essays on the things we make and why they matter. His first Substack post, published 28 October 2026, is "In a World That Moves Faster, the Art of Making Slowly?" — about what his obsession with handcrafted wooden chessboards taught him about craftsmanship and the value of human-made work in the age of AI. If someone asks to read it, share the link.
 `.trim();
 
 export async function knowledge() {
   const posts = await getCollection('writing', ({ data }) => !data.draft);
   const writing = posts
-    .map((p) => `"${p.data.title}" (${site.url}/writing/${p.id}/): ${p.data.excerpt}`)
+    .map((p) => {
+      // for each post give its title, the page on this site, and (when it was first published elsewhere) that source and link
+      const where = p.data.source
+        ? ` First published on ${p.data.source}${p.data.sourceUrl ? ` — ${p.data.sourceUrl}` : ''}.`
+        : '';
+      return `"${p.data.title}" (${site.url}/writing/${p.id}/): ${p.data.excerpt}${where}`;
+    })
     .join('\n');
-  return `${facts}\n\nWriting on the site:\n${writing}`;
+  return `${facts}\n\nWriting on the site (share the link if someone wants to read a piece):\n${writing}`;
 }
