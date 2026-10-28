@@ -107,6 +107,8 @@
 .chip:active { transform: scale(0.97); }
 @media (hover: hover) and (pointer: fine) { .chip:hover { background: color-mix(in srgb, var(--surface-2) 85%, transparent); } }
 .ask.is-chatting .chips { display: none; }
+/* during a chat, the suggestions become relevant follow-ups shown under the box */
+.ask.is-chatting .chips.is-follow { display: flex; margin-top: 14px; }
 .ask__note { margin-top: 18px; color: rgba(244, 244, 241, 0.75); font-size: 0.875rem; max-width: 52ch; }
 
 /* the conversation */

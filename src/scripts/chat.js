@@ -11,9 +11,53 @@
   const log = document.getElementById('chat');
   const mic = document.getElementById('ask-mic');
   const fresh = document.getElementById('ask-new');
+  const chipsEl = document.getElementById('ask-chips');
+  const starterChips = chipsEl ? chipsEl.innerHTML : ''; // the opening suggestions, to restore on a new chat
   const EMAIL = 'shadin2266@gmail.com';
   let history = [];
   let busy = false;
+  const asked = new Set(); // questions already asked, so follow-ups don't repeat them
+
+  // ---- follow-up suggestions: after each answer, a few relevant next questions about Shadin ----
+  // Matched against what was just asked and answered (same idea as the offline notes), with a general
+  // pool to top up. Clicking one asks it.
+  const FOLLOWUPS = [
+    { keys: ['finchat', 'agent', 'plato', 'telegram', 'brief'], qs: ['What went wrong with FinChat?', 'What were FinChat’s results?', 'How is FinChat built?', 'Is FinChat live?'] },
+    { keys: ['hancod', 'current', 'role now', 'growth', 'company', 'intern'], qs: ['What did he do at Hancod?', 'Is he open to new roles?', 'What are his main skills?'] },
+    { keys: ['hire', 'hiring', 'open to', 'available', 'roles', 'looking', 'opportunit', 'contact', 'reach'], qs: ['What roles is he looking for?', 'Where is he based?', 'Can I see his résumé?', 'How do I contact him?'] },
+    { keys: ['resume', 'résumé', 'cv'], qs: ['Is he open to new roles?', 'What has Shadin built?', 'How do I contact him?'] },
+    { keys: ['certif', 'coursera', 'course', 'certificate', 'credential'], qs: ['What are his data skills?', 'Tell me about his IBM certificates', 'What has he built with AI?'] },
+    { keys: ['mba', 'study', 'education', 'degree', 'university', 'college', 'bca'], qs: ['What’s his work experience?', 'What has Shadin built?', 'Is he open to new roles?'] },
+    { keys: ['skill', 'tool', 'sql', 'python', 'power bi'], qs: ['What projects show these skills?', 'Tell me about FinChat', 'What are his certifications?'] },
+    { keys: ['wallet', 'crypto', 'risk', 'machine learning'], qs: ['Tell me about his other projects', 'What did he build for IBM?', 'Tell me about FinChat'] },
+    { keys: ['spacex', 'falcon', 'rocket', 'landing', 'capstone', 'ibm', 'dashboard'], qs: ['What other data projects has he built?', 'Tell me about the wallet risk study', 'What are his data skills?'] },
+    { keys: ['interview', 'mock', 'placement', 'php', 'java', 'student'], qs: ['What else has he built?', 'Tell me about FinChat', 'What did he study?'] },
+    { keys: ['project', 'projects', 'built', 'portfolio'], qs: ['Tell me about FinChat', 'What’s the wallet risk study?', 'What did he build for IBM?'] },
+    { keys: ['write', 'writing', 'blog', 'post', 'substack', 'article', 'chess', 'labyrinth'], qs: ['What’s his Substack about?', 'Where can I read his first post?', 'What else does he write about?'] },
+    { keys: ['where', 'location', 'based', 'live', 'kerala', 'relocat'], qs: ['Is he open to relocating?', 'What roles is he looking for?', 'How do I contact him?'] },
+    { keys: ['tedx', 'banquest', 'event'], qs: ['What has Shadin built?', 'What’s his work experience?'] },
+    { keys: ['who', 'about', 'yourself', 'shadin'], qs: ['What has Shadin built?', 'Tell me about FinChat', 'Is he open to new roles?', 'What does he do at Hancod?'] },
+  ];
+  const GENERAL = ['Tell me about FinChat', 'Is he open to new roles?', 'What are his main skills?', 'What has he written?', 'Where did he study?', 'How do I reach him?'];
+  const norm = (q) => q.toLowerCase().replace(/[^\w\s]/g, '').replace(/\s+/g, ' ').trim();
+  const pickFollowups = (q, answer) => {
+    const s = `${q} ${answer}`.toLowerCase();
+    // the topics this exchange touched, best match first
+    const scored = FOLLOWUPS
+      .map((f) => ({ f, hits: f.keys.filter((k) => s.includes(k)).length }))
+      .filter((x) => x.hits > 0)
+      .sort((a, b) => b.hits - a.hits);
+    const out = [];
+    const add = (q2) => { if (out.length < 3 && !asked.has(norm(q2)) && !out.some((o) => norm(o) === norm(q2))) out.push(q2); };
+    for (const { f } of scored) for (const q2 of f.qs) add(q2);
+    for (const q2 of GENERAL) add(q2); // top up so there are always a few
+    return out;
+  };
+  const renderChips = (list, follow) => {
+    if (!chipsEl) return;
+    chipsEl.innerHTML = list.map((q) => `<li><button type="button" class="chip">${q.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c])}</button></li>`).join('');
+    chipsEl.classList.toggle('is-follow', !!follow);
+  };
 
   // ---- built-in answers, used when the AI can't be reached ----
   const NOTES = [
@@ -140,6 +184,8 @@
     ready();
     ask.classList.add('is-chatting');
     log.hidden = false;
+    renderChips([], false); // tuck the suggestions away while this one is being answered
+    asked.add(norm(q));
     bubble('user', format(q));
     window.dispatchEvent(new CustomEvent('brain:fire', { detail: q }));
     history.push({ role: 'user', content: q });
@@ -172,6 +218,9 @@
     history = history.slice(-12);
     busy = false;
     ready();
+    // offer a few relevant next questions
+    const next = pickFollowups(q, answer);
+    if (next.length) renderChips(next, true);
     input.focus();
   };
 
@@ -180,13 +229,20 @@
   input.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); submit(input.value); }
   });
-  document.querySelectorAll('.chip').forEach((c) => c.addEventListener('click', () => submit(c.textContent)));
+  // one delegated handler, so it keeps working as the chips are replaced with follow-ups
+  if (chipsEl) chipsEl.addEventListener('click', (e) => {
+    const chip = e.target.closest('.chip');
+    if (chip && !busy) submit(chip.textContent);
+  });
   fresh.addEventListener('click', () => {
     if (busy) return;
     history = [];
+    asked.clear();
     log.replaceChildren();
     log.hidden = true;
     ask.classList.remove('is-chatting');
+    renderChips([], false);
+    if (chipsEl) chipsEl.innerHTML = starterChips; // bring back the opening suggestions
     input.value = '';
     grow();
     ready();
