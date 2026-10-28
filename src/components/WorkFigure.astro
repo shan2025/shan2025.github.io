@@ -3,6 +3,16 @@
 interface Props { id: string }
 const { id } = Astro.props;
 ---
+{id === 'unprompters' && (
+  <figure class="ui" data-ui>
+    <figcaption class="ui__cap">How a listing shows its AI score</figcaption>
+    <div class="ui__figures">
+      <p><span class="ui__big">3%</span> AI involved</p>
+      <p><span class="ui__big">4</span> disclosure stages</p>
+    </div>
+    <p class="ui__foot">Shown on the listing as “3% AI, likely 2–13%, Human-made”. Creators disclose AI at idea, making, editing and extras; a scan can only raise the score, process proof narrows the range, and people settle disputes.</p>
+  </figure>
+)}
 {id === 'finchat' && (
   <figure class="ui" data-ui>
     <figcaption class="ui__cap">Before and after the August fixes</figcaption>

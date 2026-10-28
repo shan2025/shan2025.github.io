@@ -14,7 +14,7 @@ const writing = (await getCollection('writing', ({ data }) => !data.draft)).sort
 );
 const fmt = (d: Date) => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
 
-const suggestions = ['What has Shadin built?', 'Tell me about FinChat', 'Is he open to new roles?', 'What did he do at Hancod?'];
+const suggestions = ['What has Shadin built?', 'What is he building now?', 'Tell me about FinChat', 'Is he open to new roles?'];
 
 // ---- The map of ideas: every node is something real on this site, every link a real connection ----
 type Node = { id: string; label: string; kind: 'core' | 'hub' | 'leaf'; text: string; href: string };
@@ -74,7 +74,7 @@ type Square = { title: string; label?: string; kind: string; text: string; href?
 // piece is the letter board-scene.js sets up (r rook, q queen, b bishop, p pawn, n knight, k king); glyph is its white symbol.
 const boardSides: { piece: string; glyph: string; pieceName: string; name: string; text: string; items: Square[] }[] = [
   { piece: 'r', glyph: '♖', pieceName: 'The rooks', name: 'Projects', text: 'Things I built and shipped, and what actually happened.',
-    items: [proj('finchat'), proj('hancod'), { ...proj('wallet-risk'), label: 'Wallet risk' }, { ...proj('spacex-landing'), label: 'Falcon 9' }, { ...proj('mock-interview'), label: 'Mock interviews' }] },
+    items: [{ ...proj('unprompters'), label: 'Unprompters' }, proj('finchat'), proj('hancod'), { ...proj('wallet-risk'), label: 'Wallet risk' }, { ...proj('spacex-landing'), label: 'Falcon 9' }, { ...proj('mock-interview'), label: 'Mock interviews' }] },
   { piece: 'q', glyph: '♕', pieceName: 'The queen', name: 'AI', text: 'Agents, retrieval and evaluation: what I build with and keep learning.',
     items: [{ ...cert('RAG for Generative', 'RAG Specialization'), label: 'RAG' }, { ...cert('Introduction to Model Context', 'Intro to MCP'), label: 'MCP' }, cert('AI Fluency', 'AI Fluency'), interest('agents'), interest('evals'), post('agents-that-report-back', 'Agents report back')] },
   { piece: 'b', glyph: '♗', pieceName: 'The bishops', name: 'Product', text: 'Specs, testing and the habit of checking the outcome, not the status.',
@@ -84,7 +84,7 @@ const boardSides: { piece: string; glyph: string; pieceName: string; name: strin
   { piece: 'n', glyph: '♘', pieceName: 'The knights', name: 'Growth', text: 'Acquisition and conversion at Hancod, an MBA in FinTech, and the roles I took on at university.',
     items: [skill('Growth', 'Owning user acquisition and conversion for a live service website as Growth Manager Trainee at Hancod.'), { ...edu('MBA, FinTech', 'MBA in Financial Technology, Pondicherry University (Central University), 2024 to 2026.'), label: 'MBA' }, interest('fintech'), { ...act('TEDx Pondicherry', 'Speaker liaison at TEDx Pondicherry University 2025 for G. Karthikeyan, founder of Sristi: coordinating the speaker, the team and university admin.'), label: 'TEDx' }, { ...act('BANQUEST 2024', 'Student coordinator for BANQUEST 2024, the department’s flagship industry–academia programme.'), label: 'BANQUEST' }, post('from-blockchain-to-ai-agents', 'Blockchain to AI')] },
   { piece: 'k', glyph: '♔', pieceName: 'The king', name: 'Me', text: 'Where I studied, what I think about outside work, where to read me, and how to reach me.',
-    items: [edu('BCA', 'Bachelor of Computer Applications, Punjab Technical University, Chandigarh Group of Colleges, 2020 to 2023.'), interest('psychology'), interest('neuroscience'), interest('philosophy'), { kind: 'Contact', title: 'Say hello', text: `Hiring, a project, or a question about FinChat? Write to ${site.email}.`, href: `mailto:${site.email}` }, { kind: 'Writing', title: 'Writing', text: 'Notes from building in public.', href: '/writing/' }, { kind: 'Profile', title: 'GitHub', text: 'Code for FinChat, the wallet risk study, the Falcon 9 capstone and more.', href: site.links.github }, { kind: 'Profile', title: 'LinkedIn', text: 'Where I post about what I’m building.', href: site.links.linkedin }] },
+    items: [edu('BCA', 'Bachelor of Computer Applications, Punjab Technical University, Chandigarh Group of Colleges, 2020 to 2023.'), interest('psychology'), interest('neuroscience'), interest('philosophy'), { kind: 'Contact', title: 'Say hello', text: `Hiring, a project, or a question about FinChat? Write to ${site.email}.`, href: `mailto:${site.email}` }, { kind: 'Writing', title: 'Writing', text: 'Notes from building in public.', href: '/writing/' }, { kind: 'Profile', title: 'GitHub', text: 'Code for the wallet risk study, the Falcon 9 capstone and the mock interview system.', href: site.links.github }, { kind: 'Profile', title: 'LinkedIn', text: 'Where I post about what I’m building.', href: site.links.linkedin }] },
 ];
 
 const tabs = [
