@@ -325,6 +325,13 @@ html:not(.js) .board__body, .board.no-3d .board__body { display: none; }
 @keyframes rise { to { opacity: 1; transform: none; } }
 @keyframes panel-up { from { opacity: 0; transform: translateY(40px); } }
 
+/* one row of tabs that slides sideways, instead of a pill wrapping onto several lines */
+@media (max-width: 800px) {
+  .tabs { flex-wrap: nowrap; max-width: 100%; overflow-x: auto; scrollbar-width: none; overscroll-behavior-x: contain; }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab { flex: none; }
+}
+
 @media (max-width: 640px) {
   .ask { padding-top: 28px; }
   .ask__title { margin-top: 48px; font-size: clamp(2.5rem, 11vw, 3.25rem); }
@@ -339,11 +346,8 @@ html:not(.js) .board__body, .board.no-3d .board__body { display: none; }
   .msg { overflow-wrap: anywhere; scroll-margin-top: 16px; }
   .msg--bot { padding: 36px 0 0; }
 
-  /* one row of tabs that slides sideways, instead of a pill wrapping onto three lines */
   .panel__head { display: block; }
-  .tabs { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; overscroll-behavior-x: contain; }
-  .tabs::-webkit-scrollbar { display: none; }
-  .tab { flex: none; padding: 11px 16px; }
+  .tab { padding: 11px 16px; }
   .panel__all { display: none; margin-top: 10px; }
   .panel:has(#tab-writing[aria-selected='true']) .panel__all { display: inline-flex; }
 
