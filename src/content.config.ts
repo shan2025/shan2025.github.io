@@ -14,7 +14,7 @@ const writing = defineCollection({
     source: z.string().optional(),
     sourceUrl: z.string().url().optional(),
     // The post's picture, shown on its card and at the top of the post.
-    cover: z.string().url().optional(),
+    cover: z.string().optional(), // a full URL, or a path to a file in public/
     coverAlt: z.string().default(''),
     draft: z.boolean().default(false),
   }),

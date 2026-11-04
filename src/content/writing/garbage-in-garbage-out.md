@@ -3,6 +3,8 @@ title: Garbage in, garbage out
 excerpt: AI is only as good as the data you give it. In finance, where decisions rest on that data, flawed input means real financial risk.
 date: 2026-10-25
 source: BancQuest 2026
+cover: /writing/garbage-in-garbage-out.webp
+coverAlt: Illustration of a finger pressing a cracked keyboard key labelled "ChatGPT", beside a "Prompting" key, with red showing beneath it.
 ---
 
 > “AI is only as good as the data you give it.” In machine learning, this idea is often summarized as “Garbage In, Garbage Out.” No matter how advanced a system becomes, the quality of its output depends mainly on the quality of its input. This matters most in finance, where decisions based on flawed data can lead to high financial risk.
