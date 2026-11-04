@@ -1,6 +1,7 @@
 // Shadin's chess AI, for the board on the home page. It plays at roughly 800–900: it looks two moves ahead
 // (its move and your reply), adds a little noise, and now and then doesn't look at your reply at all, which is
-// how it hangs a piece or grabs a poisoned pawn. Where it can, it plays the way Shadin does: its brain is
+// how it hangs a piece or grabs a poisoned pawn. With black it opens with the King's Indian, the defence Shadin
+// plays (…Nf6, …g6, …Bg7, …d6, …O-O, …e5), before the search and his habits take over. Where it can, it plays the way Shadin does: its brain is
 // src/data/chess-style.json, made by scripts/chess-style.mjs from his games on Chess.com, with the moves he plays
 // in the opening and how his habits differ from his opponents' (more checks, kingside castling, and so on).
 // The search uses chess.js's internal move functions (_moves, _makeMove, _undoMove, _board): the public ones work
@@ -70,6 +71,26 @@ const weighted = (counts) => {
 export function choose(game, brain = {}) {
   const sign = game.turn() === 'w' ? 1 : -1, ply = game.history().length;
   const legal = game.moves({ verbose: true });
+  // Shadin plays the King's Indian with black: steer the opening into the fianchetto setup, in this order,
+  // playing the first step that isn't done yet and is legal right now. Only legal moves are offered, so if
+  // black is in check or a step isn't possible yet, it's skipped and the search below takes over.
+  if (game.turn() === 'b' && ply < 16) {
+    const mine = (sq, type) => { const p = game.get(sq); return p && p.color === 'b' && p.type === type; };
+    const steps = [
+      { done: mine('f6', 'n'), find: (m) => m.from === 'g8' && m.to === 'f6' }, // Nf6
+      { done: mine('g6', 'p'), find: (m) => m.from === 'g7' && m.to === 'g6' }, // g6
+      { done: mine('g7', 'b'), find: (m) => m.from === 'f8' && m.to === 'g7' }, // Bg7
+      { done: mine('d6', 'p'), find: (m) => m.from === 'd7' && m.to === 'd6' }, // d6
+      { done: mine('g8', 'k'), find: (m) => m.san === 'O-O' },                  // O-O (king lands on g8)
+      { done: mine('e5', 'p'), find: (m) => m.from === 'e7' && m.to === 'e5' }, // e5
+      { done: mine('d7', 'n'), find: (m) => m.from === 'b8' && m.to === 'd7' }, // Nbd7
+    ];
+    for (const s of steps) {
+      if (s.done) continue;
+      const m = legal.find(s.find);
+      if (m) return m;
+    }
+  }
   // his openings first: if Shadin has had this position, play what he played there; nearly always where it's
   // a habit (five games or more), a little less where he's only been there once or twice
   const seen = brain.book?.[game.fen().split(' ').slice(0, 4).join(' ')];
