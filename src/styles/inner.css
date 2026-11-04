@@ -11,6 +11,9 @@
 /* the list of notes */
 .index { list-style: none; padding: 0; display: grid; gap: 10px; }
 .index__row { display: grid; grid-template-columns: 6fr 5fr 2fr; gap: var(--gutter); align-items: baseline; padding: clamp(22px, 2.6vw, 34px); background: var(--surface); border-radius: 20px; text-decoration: none; transition: background-color var(--t-hover) ease; }
+.index__row--cover { align-items: center; }
+.index__lead { display: flex; align-items: center; gap: clamp(14px, 1.6vw, 24px); min-width: 0; }
+.index__thumb { flex: none; width: clamp(72px, 7vw, 104px); height: auto; aspect-ratio: 1; object-fit: cover; border-radius: 12px; background: var(--dark); }
 .index__title { font-size: var(--step-lead); font-weight: 600; letter-spacing: -0.025em; line-height: 1.2; }
 .index__ext { margin-left: 10px; font-size: 0.75rem; font-weight: 500; letter-spacing: 0; color: var(--muted); border: 1px solid var(--edge); border-radius: 999px; padding: 2px 8px; white-space: nowrap; vertical-align: middle; }
 .index__date { text-align: right; color: var(--muted); font-size: var(--step-small); }
@@ -21,6 +24,7 @@
 .sheet { max-width: 740px; margin-inline: auto; }
 .sheet__title { font-size: var(--step-head); }
 .sheet__meta { margin-top: 18px; color: var(--muted); font-size: var(--step-small); }
+.sheet__cover { display: block; width: 100%; height: auto; aspect-ratio: 3 / 2; margin-top: clamp(28px, 3.5vw, 40px); object-fit: cover; object-position: center 35%; border-radius: 20px; background: var(--surface); }
 .prose { margin-top: clamp(32px, 4vw, 48px); display: grid; gap: 1.1em; line-height: 1.7; }
 .prose ul { padding-left: 1.2em; display: grid; gap: 0.4em; }
 .prose a { text-decoration-thickness: 0.07em; text-underline-offset: 0.22em; }
@@ -56,7 +60,7 @@
 
 @media (prefers-reduced-motion: no-preference) {
   .js .page__title, .js .sheet__title { animation: in-rise 800ms var(--ease-expo) both; }
-  .js .page__intro, .js .sheet__meta { animation: in-rise 700ms var(--ease-out) 90ms both; }
+  .js .page__intro, .js .sheet__meta, .js .sheet__cover { animation: in-rise 700ms var(--ease-out) 90ms both; }
   .js .index > li, .js .cv, .js .timeline__item, .js .prose > *, .js .sheet__back, .js .timeline__title, .js .case > *, .js .case__links { animation: in-rise 700ms var(--ease-out) 260ms both; }
   .js .index > li:nth-child(2), .js .cv:nth-child(2), .js .case > :nth-child(2) { animation-delay: 330ms; }
   .js .index > li:nth-child(3), .js .cv:nth-child(3) { animation-delay: 400ms; }

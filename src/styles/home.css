@@ -223,6 +223,7 @@ html:not(.js) .board__body, .board.no-3d .board__body { display: none; }
 .card__title { margin-top: 14px; padding-inline: 6px; font-size: 1.125rem; letter-spacing: -0.02em; line-height: 1.25; }
 .card__meta { margin-top: 4px; padding-inline: 6px; color: var(--muted); font-size: 0.875rem; }
 .card--text { padding: 26px 24px; background: var(--surface); }
+.card__cover { display: block; flex: none; width: calc(100% + 28px); max-width: none; height: auto; aspect-ratio: 3 / 2; margin: -16px -14px 22px; object-fit: cover; object-position: center 35%; border-radius: 14px; background: var(--dark); }
 .card--text .card__title { margin-top: 0; padding: 0; font-size: var(--step-lead); }
 .card--text .card__excerpt { margin-top: 12px; flex: 1; }
 .card--text .card__meta { padding: 0; margin-top: 22px; }

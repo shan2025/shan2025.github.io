@@ -4,6 +4,8 @@ excerpt: Perhaps predictability feels different when life is analog.
 date: 2026-11-03
 source: Substack
 sourceUrl: https://shadin12.substack.com/p/the-future-of-the-world-is-analog
+cover: https://substack-post-media.s3.amazonaws.com/public/images/5feed6c2-095a-4cc6-a553-2e40f97a2973_1024x1024.jpeg
+coverAlt: A tall wooden grandfather clock in an old sunlit room, between antique chairs and side tables.
 ---
 
 During my childhood, we had this big clock in our house. It was golden in colour, with a large, diamond-shaped pendulum that would slowly turn from side to side, almost like a merry-go-round. I always wondered what it would be like to swing on it. It was a diamond-fin (or lozenge-style) torsion pendulum clock, a kind of grandfather clock that hung on our wall. It was a wedding gift to my parents.

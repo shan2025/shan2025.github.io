@@ -4,6 +4,8 @@ excerpt: What a chessboard taught me about craftsmanship, creativity, and the va
 date: 2026-10-28
 source: Substack
 sourceUrl: https://substack.com/@shadin12/p-222472961
+cover: https://substack-post-media.s3.amazonaws.com/public/images/a1593a01-c9af-4b49-b60f-eed7cb3d589b_1080x1080.webp
+coverAlt: Two hand-carved wooden chess knights, one black and one pale, facing each other on a chessboard.
 ---
 
 Recently, I developed this weird obsession with chessboards.

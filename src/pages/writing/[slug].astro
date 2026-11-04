@@ -21,6 +21,7 @@ const date = post.data.date.toLocaleDateString('en-GB', { day: 'numeric', month:
       <p class="sheet__meta">
         <time datetime={post.data.date.toISOString()}>{date}</time>{post.data.source && <>, first posted on {post.data.sourceUrl ? <a class="link" href={post.data.sourceUrl}>{post.data.source}</a> : post.data.source}</>}
       </p>
+      {post.data.cover && <img class="sheet__cover" src={post.data.cover} alt={post.data.coverAlt} width="1024" height="1024" decoding="async" />}
       <div class="prose">
         <Content />
       </div>

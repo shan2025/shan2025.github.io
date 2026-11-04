@@ -13,6 +13,9 @@ const writing = defineCollection({
     // Where the piece was first published, if anywhere (LinkedIn, Substack, ...).
     source: z.string().optional(),
     sourceUrl: z.string().url().optional(),
+    // The post's picture, shown on its card and at the top of the post.
+    cover: z.string().url().optional(),
+    coverAlt: z.string().default(''),
     draft: z.boolean().default(false),
   }),
 });

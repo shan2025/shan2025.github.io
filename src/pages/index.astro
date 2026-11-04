@@ -211,6 +211,7 @@ const tabs = [
           {writing.map((p) => (
             <li>
               <a class="card card--text" href={`/writing/${p.id}/`}>
+                {p.data.cover && <img class="card__cover" src={p.data.cover} alt={p.data.coverAlt} width="1024" height="1024" loading="lazy" decoding="async" />}
                 <h2 class="card__title">{p.data.title}</h2>
                 <p class="card__excerpt">{p.data.excerpt}</p>
                 <p class="card__meta"><time datetime={p.data.date.toISOString()}>{fmt(p.data.date)}</time></p>

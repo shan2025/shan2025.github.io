@@ -16,6 +16,8 @@ const local = (await getCollection('writing', ({ data }) => !data.draft)).map((p
   date: p.data.date,
   href: `/writing/${p.id}/`,
   external: false,
+  cover: p.data.cover,
+  coverAlt: p.data.coverAlt,
 }));
 
 // a tiny RSS reader: pull <item>s from the feed, strip CDATA and tags
@@ -43,6 +45,9 @@ const fromFeed = async () => {
         date: new Date(pick(it, 'pubDate') || Date.now()),
         href: pick(it, 'link'),
         external: true,
+        // Substack puts the post's picture in an <enclosure> tag
+        cover: it.match(/<enclosure[^>]*\burl="([^"]+)"/i)?.[1],
+        coverAlt: '',
       };
     }).filter((p) => p.title && p.href);
   } catch {
@@ -75,8 +80,11 @@ const fmt = (d: Date) => d.toLocaleDateString('en-GB', { day: 'numeric', month: 
     <ul class="index">
       {posts.map((p) => (
         <li>
-          <a class="index__row" href={p.href} {...(p.external ? { target: '_blank', rel: 'noopener' } : {})}>
-            <span class="index__title">{p.title}{p.external && <span class="index__ext">Substack ↗</span>}</span>
+          <a class:list={['index__row', { 'index__row--cover': p.cover }]} href={p.href} {...(p.external ? { target: '_blank', rel: 'noopener' } : {})}>
+            <span class="index__lead">
+              {p.cover && <img class="index__thumb" src={p.cover} alt={p.coverAlt} width="1024" height="1024" loading="lazy" decoding="async" />}
+              <span class="index__title">{p.title}{p.external && <span class="index__ext">Substack ↗</span>}</span>
+            </span>
             <span class="index__excerpt">{p.excerpt}</span>
             <time class="index__date" datetime={p.date.toISOString()}>{fmt(p.date)}</time>
           </a>
