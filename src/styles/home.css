@@ -330,4 +330,24 @@ html:not(.js) .board__body, .board.no-3d .board__body { display: none; }
   .ask__title { margin-top: 48px; font-size: clamp(2.5rem, 11vw, 3.25rem); }
   .box__hint { visibility: hidden; }
   .panel { width: calc(100% - 16px); border-radius: 24px; }
+
+  /* a calmer glow, so white text stays readable on it (and no costly breathing on a phone) */
+  .glow { opacity: clamp(0, calc(var(--p) * 0.5), 0.45); animation: none; }
+
+  /* the conversation flows with the page: no scroll box inside a scroll, so a thumb never gets stuck */
+  .chat { max-height: none; overflow: visible; padding: 8px 2px 4px; -webkit-mask-image: none; mask-image: none; }
+  .msg { overflow-wrap: anywhere; scroll-margin-top: 16px; }
+  .msg--bot { padding: 36px 0 0; }
+
+  /* one row of tabs that slides sideways, instead of a pill wrapping onto three lines */
+  .panel__head { display: block; }
+  .tabs { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; overscroll-behavior-x: contain; }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab { flex: none; padding: 11px 16px; }
+  .panel__all { display: none; margin-top: 10px; }
+  .panel:has(#tab-writing[aria-selected='true']) .panel__all { display: inline-flex; }
+
+  /* shorter touch surfaces, so there is always room to scroll past them */
+  .board__stage { height: clamp(280px, 86vw, 400px); }
+  .map { height: 56svh; min-height: 380px; }
 }

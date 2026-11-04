@@ -188,13 +188,15 @@
     log.hidden = false;
     renderChips([], false); // tuck the suggestions away while this one is being answered
     asked.add(norm(q));
-    bubble('user', format(q));
+    const asking = bubble('user', format(q));
     window.dispatchEvent(new CustomEvent('brain:fire', { detail: q }));
     history.push({ role: 'user', content: q });
     input.value = '';
     grow();
     const bot = bubble('bot', '<span class="typing" aria-label="Thinking"><span></span><span></span><span></span></span>');
-    form.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    // on a phone the thread flows with the page: put the question at the top and let the answer grow under it
+    if (matchMedia('(max-width: 640px)').matches) asking.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    else form.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
     let answer;
     try {
       answer = await askAI(bot);
@@ -223,7 +225,8 @@
     // offer a few relevant next questions
     const next = pickFollowups(q, answer);
     if (next.length) renderChips(next, true);
-    input.focus();
+    // not on touch screens: the keyboard would pop up over the answer
+    if (matchMedia('(hover: hover) and (pointer: fine)').matches) input.focus();
   };
 
   form.addEventListener('submit', (e) => { e.preventDefault(); submit(input.value); });

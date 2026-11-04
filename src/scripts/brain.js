@@ -198,13 +198,16 @@
   let C = colours();
 
   const size = () => {
-    const r = canvas.getBoundingClientRect();
+    // clientWidth, not getBoundingClientRect: the canvas is scaled as you scroll, and that mustn't change its size
+    const w = canvas.clientWidth, h = canvas.clientHeight, sameWidth = w === W;
     dpr = Math.min(2, window.devicePixelRatio || 1);
-    W = r.width; H = r.height;
+    W = w; H = h;
     canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    R = Math.min(W * 0.38, H * 0.34, 440);
-    build();
+    // on a phone, small enough that the widest neurons and their names stay on screen
+    R = W < 640 ? Math.min(W * 0.29, H * 0.3) : Math.min(W * 0.38, H * 0.34, 440);
+    // only a real width change rebuilds; a phone's bars coming and going mustn't restart the animation
+    if (!sameWidth) build();
   };
 
   // how far the page has scrolled from the opening towards the chat (0 → 1). The page uses it (as --p) to
@@ -214,7 +217,8 @@
     p = Math.max(0, Math.min(1, scrollY / (innerHeight * 0.85)));
     mind.parentElement.style.setProperty('--p', p.toFixed(3));
     const leaving = Math.max(0, Math.min(1, (mind.getBoundingClientRect().bottom - innerHeight * 0.35) / (innerHeight * 0.65)));
-    canvas.style.opacity = String((1 - 0.3 * p) * leaving);
+    // on a phone the chat sits right on top of it, so it steps much further back
+    canvas.style.opacity = String((1 - (W < 640 ? 0.8 : 0.3) * p) * leaving);
     wake();
   };
 
@@ -275,14 +279,23 @@
     if (shape !== 0) return;
     ctx.font = `600 ${W < 640 ? 10.5 : 13}px Switzer, system-ui, sans-serif`;
     ctx.textAlign = 'center';
-    for (const t of topics) {
+    if (W < 640 && p > 0.5) return; // on a phone, no names over the chat's text
+    // firing names claim their space first; a name that would overlap one already placed fades out until it's clear
+    const placed = [], tall = W < 640 ? 13 : 16;
+    const byFiring = [...topics].sort((a, b) => (points[b.i].glow > 0.3) - (points[a.i].glow > 0.3));
+    for (const t of byFiring) {
       const n = points[t.i];
       if (!n.here) continue;
-      const alpha = Math.max(Math.min(1, n.glow * 1.4), 0.6 * (1 - p));
-      if (alpha < 0.05) continue;
-      const q = P[t.i];
-      ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
-      ctx.fillText(t.label, q.x, q.y - 12);
+      const q = P[t.i], half = ctx.measureText(t.label).width / 2 + 3;
+      // kept inside the screen's edges
+      const x = Math.max(half + 4, Math.min(W - half - 4, q.x)), y = q.y - 12;
+      const clash = placed.some((b) => Math.abs(b.x - x) < b.half + half && Math.abs(b.y - y) < tall);
+      const want = clash ? 0 : Math.max(Math.min(1, n.glow * 1.4), 0.6 * (1 - p));
+      t.alpha = (t.alpha || 0) + (want - (t.alpha || 0)) * 0.1;
+      if (!clash && want >= 0.05) placed.push({ x, y, half });
+      if (t.alpha < 0.05) continue;
+      ctx.fillStyle = `rgba(255, 255, 255, ${t.alpha})`;
+      ctx.fillText(t.label, x, y);
     }
   };
 

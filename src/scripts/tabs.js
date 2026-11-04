@@ -13,7 +13,12 @@
   };
   show(tabs.find((t) => t.getAttribute('aria-selected') === 'true') ?? tabs[0]);
   tabs.forEach((t, i) => {
-    t.addEventListener('click', () => show(t));
+    t.addEventListener('click', () => {
+      show(t);
+      // on a phone the tabs slide sideways: bring the chosen one fully into view, without moving the page
+      const row = t.parentElement;
+      row.scrollTo({ left: t.offsetLeft - row.offsetLeft - (row.clientWidth - t.offsetWidth) / 2, behavior: 'smooth' });
+    });
     t.addEventListener('keydown', (e) => {
       const step = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
       if (!step) return;
