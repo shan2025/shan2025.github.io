@@ -13,9 +13,10 @@ export const site = {
   links: {
     linkedin: 'https://www.linkedin.com/in/shadin-a-4a2102249',
     github: 'https://github.com/shan2025',
-    // [Placeholder] Replace with your Substack address when you have one.
-    substack: '',
+    substack: 'https://shadin12.substack.com',
   },
+  // Shadin's Substack RSS feed; the Writing page reads it so new posts appear on their own.
+  substackFeed: 'https://shadin12.substack.com/feed',
 };
 
 // The three résumés in public/resume/. Each one is tuned for a different kind of role.
