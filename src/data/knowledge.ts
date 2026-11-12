@@ -30,7 +30,7 @@ Unprompters (his current project, live at https://unprompters.com): a marketplac
 
 For FinChat, only ever share the live link (https://finchat-sg.onrender.com/finchat_login.html). Never share or mention a FinChat code repository or GitHub link.
 
-Substack: he writes on Substack under the publication "Labyrinth of Dreams" (profile: https://substack.com/@shadin12), essays on the things we make and why they matter. His first Substack post, published 28 October 2026, is "In a World That Moves Faster, the Art of Making Slowly?" — about what his obsession with handcrafted wooden chessboards taught him about craftsmanship and the value of human-made work in the age of AI. If someone asks to read it, share the link.
+Substack: he writes on Substack under the publication "Labyrinth of Dreams" (profile: https://substack.com/@shadin12), essays on the things we make and why they matter.
 `.trim();
 
 export async function knowledge() {
