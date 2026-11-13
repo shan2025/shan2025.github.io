@@ -3,6 +3,7 @@
 import { getCollection } from 'astro:content';
 import { site, resumes, interests } from './site';
 import { certifications, courseCount } from './certifications';
+import { newSubstackPosts } from './substack';
 
 export const facts = `
 Name: ${site.fullName} (goes by Shadin). Based in ${site.place}, India. Email: ${site.email}. LinkedIn: ${site.links.linkedin}. GitHub: ${site.links.github}.
@@ -44,5 +45,14 @@ export async function knowledge() {
       return `"${p.data.title}" (${site.url}/writing/${p.id}/): ${p.data.excerpt}${where}`;
     })
     .join('\n');
-  return `${facts}\n\nWriting on the site (share the link if someone wants to read a piece):\n${writing}`;
+  // the longer story of each project, from its page on the site
+  const work = (await getCollection('work', ({ data }) => !data.placeholder))
+    .filter((w) => w.body?.trim())
+    .map((w) => `${w.data.name} (${site.url}/work/${w.id}/):\n${w.body!.trim()}`)
+    .join('\n\n');
+  // his Substack essays, live from the feed (skipped quietly if Substack is slow)
+  const essays = (await newSubstackPosts(posts.map((p) => p.data.title), 1500))
+    .map((p) => `"${p.title}" (Substack essay, ${p.date.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}, read it at ${p.href}). It begins: ${p.text}`)
+    .join('\n');
+  return `${facts}\n\nProject pages, in more detail (share the page link if someone wants to read more):\n${work}\n\nWriting on the site (share the link if someone wants to read a piece):\n${writing}${essays ? `\n\nSubstack essays (share the link if someone wants to read one):\n${essays}` : ''}`;
 }

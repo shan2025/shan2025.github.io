@@ -30,6 +30,9 @@ const work = defineCollection({
     worked: z.string(),
     link: z.string().optional(),
     linkLabel: z.string().optional(),
+    // Tools and methods used, shown as tags on the project's page.
+    stack: z.array(z.string()).default([]),
+    // The text below the front matter is the longer story, shown on the project's page.
     // Set to true while the entry still holds sample text that must be replaced.
     placeholder: z.boolean().default(false),
   }),

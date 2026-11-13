@@ -7,3 +7,24 @@ worked: The score is built to be hard to game. Creators disclose where AI helped
 link: https://unprompters.com
 linkLabel: Open Unprompters
 ---
+
+## The problem
+
+AI makes it easy to produce almost anything, fast. The work that took someone years to learn now sits in the same feed as work generated in seconds, and there's no honest way to tell them apart. AI detectors don't fix this: they get fooled, and they wrongly flag real people.
+
+## What Unprompters does
+
+It's a place to explore and buy work people made themselves: writing, art, film, code, handicrafts and more. Every piece shows how much AI was involved, as a **number with a range and the reasoning behind it**, never a yes-or-no verdict. For example: *3% AI, likely 2–13%, Human-made*.
+
+## How the score works
+
+1. **Disclose.** Creators say exactly where AI touched the work, at four stages: the idea, the making, the polish and the extras. Their answer is the floor: the site never shows less AI than a creator admits to.
+2. **Analyse.** The text, code and file metadata are scanned for machine patterns, generator tags and Content Credentials. A scan can raise the score, only as far as its confidence allows, and never lower it.
+3. **Prove.** Drafts, time-lapses and commit history narrow the range. They're public, so anyone can see how the work was made.
+4. **People settle disputes.** Flags and disagreements go to a moderator, not an algorithm, and creators can respond with evidence.
+
+## What's live
+
+The scoring engine; an Explore view with a "human-made only" filter; listing pages with passage-by-passage highlights and an embeddable badge; a guided selling flow with a "Check my score" step; and creator profiles.
+
+Related reading: [When Everything Becomes Easy to Make](https://shadin12.substack.com/p/in-a-world-that-moves-faster-the-c1d), my essay on why human-made work keeps its value in the age of AI.

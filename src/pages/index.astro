@@ -5,7 +5,12 @@ import WorkFigure from '../components/WorkFigure.astro';
 import { getCollection } from 'astro:content';
 import { site, resumes, interests } from '../data/site';
 import { certifications } from '../data/certifications';
+import { newSubstackPosts } from '../data/substack';
 import '../styles/home.css';
+
+// Rendered on request (and cached at the edge for half an hour) so new Substack posts appear on their own.
+export const prerender = false;
+Astro.response.headers.set('cache-control', 'public, max-age=0, s-maxage=1800, stale-while-revalidate=86400');
 
 const work = (await getCollection('work', ({ data }) => !data.placeholder)).sort((a, b) => a.data.order - b.data.order);
 const products = (await getCollection('products', ({ data }) => !data.placeholder)).sort((a, b) => a.data.order - b.data.order);
@@ -13,6 +18,13 @@ const writing = (await getCollection('writing', ({ data }) => !data.draft)).sort
   (a, b) => b.data.date.valueOf() - a.data.date.valueOf(),
 );
 const fmt = (d: Date) => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+
+// Substack essays that aren't written up on the site, shown alongside the on-site posts
+const substack = await newSubstackPosts(writing.map((p) => p.data.title));
+const posts = [
+  ...writing.map((p) => ({ title: p.data.title, excerpt: p.data.excerpt, date: p.data.date, href: `/writing/${p.id}/`, cover: p.data.cover, coverAlt: p.data.coverAlt, external: false })),
+  ...substack,
+].sort((a, b) => b.date.valueOf() - a.date.valueOf());
 
 const suggestions = ['What has Shadin built?', 'What is he building now?', 'Tell me about FinChat', 'Is he open to new roles?'];
 
@@ -27,12 +39,17 @@ const nodes: Node[] = [
   { id: 'resume', label: 'Résumé', kind: 'leaf', text: 'Three versions, for product, AI and analyst roles.', href: '/resume/' },
   ...work.map((w) => ({ id: w.id, label: w.data.name, kind: 'leaf' as const, text: w.data.kind, href: `/work/${w.id}/` })),
   ...writing.map((p) => ({ id: `post-${p.id}`, label: p.data.title, kind: 'leaf' as const, text: p.data.excerpt, href: `/writing/${p.id}/` })),
+  ...substack.map((p) => ({ id: `sub-${p.slug}`, label: p.title, kind: 'leaf' as const, text: p.excerpt, href: p.href })),
   ...interests.map((i) => ({ id: i.id, label: i.name, kind: 'leaf' as const, text: i.note, href: '#explore' })),
 ];
 const links: [string, string, number?][] = [
   ['me', 'work'], ['me', 'writing'], ['me', 'products'], ['me', 'interests'], ['me', 'resume'],
   ...work.map((w) => ['work', w.id] as [string, string]),
   ...writing.map((p) => ['writing', `post-${p.id}`] as [string, string]),
+  ...substack.map((p) => ['writing', `sub-${p.slug}`] as [string, string]),
+  // Substack essays, by the last part of their address (a link is skipped if the post isn't in the feed)
+  ['sub-the-future-of-the-world-is-analog', 'philosophy', 0.3], ['sub-the-future-of-the-world-is-analog', 'psychology', 0.3],
+  ['sub-in-a-world-that-moves-faster-the-c1d', 'unprompters', 0.3], ['sub-in-a-world-that-moves-faster-the-c1d', 'philosophy', 0.3],
   ['products', 'unprompters'], ['products', 'finchat'],
   ...interests.map((i) => ['interests', i.id] as [string, string]),
   ['unprompters', 'evals', 0.3], ['unprompters', 'product', 0.3], ['unprompters', 'philosophy', 0.3],
@@ -85,7 +102,7 @@ const boardSides: { piece: string; glyph: string; pieceName: string; name: strin
   { piece: 'n', glyph: '♘', pieceName: 'The knights', name: 'Growth', text: 'Acquisition and conversion at Hancod, an MBA in FinTech, and the roles I took on at university.',
     items: [skill('Growth', 'Owning user acquisition and conversion for a live service website as Growth Manager Trainee at Hancod.'), { ...edu('MBA, FinTech', 'MBA in Financial Technology, Pondicherry University (Central University), 2024 to 2026.'), label: 'MBA' }, interest('fintech'), { ...act('TEDx Pondicherry', 'Speaker liaison at TEDx Pondicherry University 2025 for G. Karthikeyan, founder of Sristi: coordinating the speaker, the team and university admin.'), label: 'TEDx' }, { ...act('BANQUEST 2024', 'Student coordinator for BANQUEST 2024, the department’s flagship industry–academia programme.'), label: 'BANQUEST' }, post('from-blockchain-to-ai-agents', 'Blockchain to AI')] },
   { piece: 'k', glyph: '♔', pieceName: 'The king', name: 'Me', text: 'Where I studied, what I think about outside work, where to read me, and how to reach me.',
-    items: [edu('BCA', 'Bachelor of Computer Applications, Punjab Technical University, Chandigarh Group of Colleges, 2020 to 2023.'), interest('psychology'), interest('neuroscience'), interest('philosophy'), { kind: 'Contact', title: 'Say hello', text: `Hiring, a project, or a question about FinChat? Write to ${site.email}.`, href: `mailto:${site.email}` }, { kind: 'Writing', title: 'Writing', text: 'Notes from building in public.', href: '/writing/' }, { kind: 'Profile', title: 'GitHub', text: 'Code for the wallet risk study, the Falcon 9 capstone and the mock interview system.', href: site.links.github }, { kind: 'Profile', title: 'LinkedIn', text: 'Where I post about what I’m building.', href: site.links.linkedin }] },
+    items: [edu('BCA', 'Bachelor of Computer Applications, Punjab Technical University, Chandigarh Group of Colleges, 2020 to 2023.'), interest('psychology'), interest('neuroscience'), interest('philosophy'), { kind: 'Contact', title: 'Say hello', text: `Hiring, a project, or a question about FinChat? Write to ${site.email}.`, href: `mailto:${site.email}` }, { kind: 'Writing', title: 'Writing', text: 'Notes from building in public.', href: '/writing/' }, { kind: 'Writing', title: 'Substack', text: 'Labyrinth of Dreams: essays on the conundrums of life, the things we make, and why they matter.', href: site.links.substack }, { kind: 'Profile', title: 'GitHub', text: 'Code for the wallet risk study, the Falcon 9 capstone and the mock interview system.', href: site.links.github }, { kind: 'Profile', title: 'LinkedIn', text: 'Where I post about what I’m building.', href: site.links.linkedin }] },
 ];
 
 const tabs = [
@@ -209,13 +226,13 @@ const tabs = [
 
       <div class="pane" role="tabpanel" id="pane-writing" aria-labelledby="tab-writing">
         <ul class="cards">
-          {writing.map((p) => (
+          {posts.map((p) => (
             <li>
-              <a class="card card--text" href={`/writing/${p.id}/`}>
-                {p.data.cover && <img class="card__cover" src={p.data.cover} alt={p.data.coverAlt} width="1024" height="1024" loading="lazy" decoding="async" />}
-                <h2 class="card__title">{p.data.title}</h2>
-                <p class="card__excerpt">{p.data.excerpt}</p>
-                <p class="card__meta"><time datetime={p.data.date.toISOString()}>{fmt(p.data.date)}</time></p>
+              <a class="card card--text" href={p.href} {...(p.external ? { target: '_blank', rel: 'noopener' } : {})}>
+                {p.cover && <img class="card__cover" src={p.cover} alt={p.coverAlt} width="1024" height="1024" loading="lazy" decoding="async" />}
+                <h2 class="card__title">{p.title}</h2>
+                <p class="card__excerpt">{p.excerpt}</p>
+                <p class="card__meta"><time datetime={p.date.toISOString()}>{fmt(p.date)}</time>{p.external && ' · Substack ↗'}</p>
               </a>
             </li>
           ))}

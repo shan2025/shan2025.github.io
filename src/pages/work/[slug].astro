@@ -2,7 +2,7 @@
 import Base from '../../layouts/Base.astro';
 import Bar from '../../components/Bar.astro';
 import WorkFigure from '../../components/WorkFigure.astro';
-import { getCollection } from 'astro:content';
+import { getCollection, render } from 'astro:content';
 import '../../styles/inner.css';
 import '../../styles/home.css';
 
@@ -11,6 +11,8 @@ export async function getStaticPaths() {
   return work.map((w) => ({ params: { slug: w.id }, props: { w } }));
 }
 const { w } = Astro.props;
+const { Content } = await render(w);
+const hasStory = !!w.body?.trim();
 ---
 <Base title={w.data.name} description={w.data.ran}>
   <Bar slot="header" current="work" />
@@ -24,8 +26,15 @@ const { w } = Astro.props;
       <dl class="case__text">
         <dt>What ran</dt><dd>{w.data.ran}</dd>
         <dt>What worked</dt><dd>{w.data.worked}</dd>
+        {w.data.stack.length > 0 && (
+          <>
+            <dt>Built with</dt>
+            <dd><ul class="case__stack">{w.data.stack.map((s) => <li>{s}</li>)}</ul></dd>
+          </>
+        )}
       </dl>
     </div>
+    {hasStory && <div class="prose case__story"><Content /></div>}
     <p class="case__links">
       {w.data.link && <a class="button" href={w.data.link}>{w.data.linkLabel ?? 'Open'}</a>}
       <a class="button button--ghost" href="/#explore">All projects</a>
