@@ -4,7 +4,8 @@ import Footer from '../components/Footer.astro';
 import { site } from '../data/site';
 
 interface Props { title?: string; description?: string; image?: string }
-const { title, description = site.description, image } = Astro.props;
+// image: a page's own share picture; otherwise public/og.png (made by scripts/og-image.mjs)
+const { title, description = site.description, image = '/og.png' } = Astro.props;
 const fullTitle = title ? `${title} | ${site.name}` : `${site.name}: ideas, built and checked`;
 const canonical = new URL(Astro.url.pathname, site.url);
 ---
@@ -18,8 +19,11 @@ const canonical = new URL(Astro.url.pathname, site.url);
     <link rel="canonical" href={canonical} />
     <meta property="og:title" content={fullTitle} />
     <meta property="og:description" content={description} />
-    {image && <meta property="og:image" content={new URL(image, site.url)} />}
+    <meta property="og:image" content={new URL(image, site.url)} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:site_name" content={site.name} />
     <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
     <meta name="theme-color" content="#1b1b1b" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="preconnect" href="https://api.fontshare.com" />

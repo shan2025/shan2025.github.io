@@ -26,7 +26,7 @@ export const resumes = [
   { label: 'Business analysis', note: 'For business analyst and project roles', href: '/resume/shadin-resume-ba.pdf' },
 ];
 
-// [Placeholder] The fields you care about. Each one becomes a node on the map of ideas.
+// The fields you care about. Each one becomes a node on the map of ideas.
 // `name` is the short label on the map; `phrase` is how it reads mid-sentence; `note` shows when someone clicks it.
 export const interests = [
   { id: 'fintech', name: 'Fintech', phrase: 'fintech', note: 'Where my MBA and most of my side projects meet: money, risk and the products around them.' },

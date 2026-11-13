@@ -5,4 +5,5 @@ price: Free to browse
 buyUrl: https://unprompters.com
 buyLabel: Open Unprompters
 order: 0
+figure: unprompters
 ---

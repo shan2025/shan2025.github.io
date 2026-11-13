@@ -242,7 +242,9 @@ html:not(.js) .board__body, .board.no-3d .board__body { display: none; }
 .cert__issuer { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 0.875rem; font-weight: 500; }
 .cert__badge { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 10px; background: var(--accent); color: var(--accent-ink); font-weight: 700; font-size: 0.9375rem; }
 
+.products { display: grid; gap: 16px; }
 .product { display: grid; grid-template-columns: 7fr 5fr; gap: 16px; align-items: stretch; }
+.product:not(:has(.product__shot)) { grid-template-columns: 1fr; }
 .product__shot .ui { height: 100%; border-radius: 20px; }
 .product__text { display: flex; flex-direction: column; align-items: flex-start; gap: 14px; padding: clamp(24px, 3vw, 40px); background: var(--surface); border-radius: 20px; }
 .product__name { font-size: var(--step-head); }

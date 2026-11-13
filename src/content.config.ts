@@ -45,6 +45,8 @@ const products = defineCollection({
     buyUrl: z.string(),
     buyLabel: z.string().default('Buy'),
     order: z.number(),
+    // The panel shown beside it: an id from src/components/WorkFigure.astro (e.g. 'roster', 'unprompters').
+    figure: z.string().optional(),
     placeholder: z.boolean().default(false),
   }),
 });

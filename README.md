@@ -85,10 +85,20 @@ date: 2026-11-01
 
 Set `draft: true` to keep a post off the site while you write it.
 
+A product can show a panel beside it: set `figure:` to one of the ids drawn in `src/components/WorkFigure.astro`
+(for example `roster` for FinChat's agents, `unprompters` for the AI score).
+
 ### Still to fill in
 
 - `src/content/products/next-product.md`: your next product. It stays hidden while `placeholder: true`; set that to `false` once it's real.
-- `src/data/site.ts`: your Substack address and the full list of interests.
+
+## Sharing and search
+
+- **Share picture**: links to the site show `public/og.png`. After changing your name, role or tagline, run
+  `node scripts/og-image.mjs` to redraw it.
+- **Search engines**: `public/robots.txt` points them to `/sitemap.xml`, which lists every page and post on its
+  own (`src/pages/sitemap.xml.ts`). `/themes/` is kept out of search.
+- **Missing pages** show `src/pages/404.astro`.
 
 ## Publish it on shadin.xyz
 

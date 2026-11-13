@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /themes/
+Disallow: /api/
+
+Sitemap: https://shadin.xyz/sitemap.xml

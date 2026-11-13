@@ -20,7 +20,7 @@ const suggestions = ['What has Shadin built?', 'What is he building now?', 'Tell
 type Node = { id: string; label: string; kind: 'core' | 'hub' | 'leaf'; text: string; href: string };
 const nodes: Node[] = [
   { id: 'me', label: 'Shadin', kind: 'core', text: 'Product and growth at Hancod, and the builder of FinChat.', href: '/resume/' },
-  { id: 'work', label: 'Projects', kind: 'hub', text: 'Three projects, each with what ran and what actually worked.', href: '#explore' },
+  { id: 'work', label: 'Projects', kind: 'hub', text: `${work.length} projects, each with what ran and what actually worked.`, href: '#explore' },
   { id: 'writing', label: 'Writing', kind: 'hub', text: 'Notes from building in public.', href: '/writing/' },
   { id: 'products', label: 'Products', kind: 'hub', text: 'Things you can use or buy.', href: '#explore' },
   { id: 'interests', label: 'Interests', kind: 'hub', text: 'The fields Shadin follows most closely.', href: '#explore' },
@@ -33,8 +33,9 @@ const links: [string, string, number?][] = [
   ['me', 'work'], ['me', 'writing'], ['me', 'products'], ['me', 'interests'], ['me', 'resume'],
   ...work.map((w) => ['work', w.id] as [string, string]),
   ...writing.map((p) => ['writing', `post-${p.id}`] as [string, string]),
-  ['products', 'finchat'],
+  ['products', 'unprompters'], ['products', 'finchat'],
   ...interests.map((i) => ['interests', i.id] as [string, string]),
+  ['unprompters', 'evals', 0.3], ['unprompters', 'product', 0.3], ['unprompters', 'philosophy', 0.3],
   ['finchat', 'agents', 0.3], ['finchat', 'evals', 0.3], ['finchat', 'fintech', 0.3],
   ['wallet-risk', 'fintech', 0.3], ['wallet-risk', 'evals', 0.3],
   ['hancod', 'growth', 0.3], ['hancod', 'product', 0.3],
@@ -222,14 +223,16 @@ const tabs = [
       </div>
 
       <div class="pane" role="tabpanel" id="pane-products" aria-labelledby="tab-products">
-        <div class="product">
-          <div class="product__shot"><WorkFigure id="roster" /></div>
+        <div class="products">
           {products.map((p) => (
-            <div class="product__text">
-              <h2 class="product__name">{p.data.name}</h2>
-              <p>{p.data.summary}</p>
-              <p class="product__price">{p.data.price}</p>
-              <a class="button" href={p.data.buyUrl}>{p.data.buyLabel}</a>
+            <div class="product">
+              {p.data.figure && <div class="product__shot"><WorkFigure id={p.data.figure} /></div>}
+              <div class="product__text">
+                <h2 class="product__name">{p.data.name}</h2>
+                <p>{p.data.summary}</p>
+                <p class="product__price">{p.data.price}</p>
+                <a class="button" href={p.data.buyUrl}>{p.data.buyLabel}</a>
+              </div>
             </div>
           ))}
         </div>

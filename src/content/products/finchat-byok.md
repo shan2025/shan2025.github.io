@@ -5,4 +5,5 @@ price: Free to try with 25 calls on the shared key, then bring your own key
 buyUrl: https://finchat-sg.onrender.com/finchat_login.html
 buyLabel: Try FinChat
 order: 1
+figure: roster
 ---

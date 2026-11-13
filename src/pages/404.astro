@@ -1,0 +1,15 @@
+---
+import Base from '../layouts/Base.astro';
+import Bar from '../components/Bar.astro';
+import '../styles/inner.css';
+---
+<Base title="Page not found" description="This page doesn't exist on shadin.xyz.">
+  <meta slot="head" name="robots" content="noindex" />
+  <Bar slot="header" />
+  <div class="page">
+    <div class="page__head">
+      <h1 class="page__title">Nothing here</h1>
+      <p class="page__intro">This page doesn’t exist, or it moved. Try the <a class="link" href="/">home page</a>, the <a class="link" href="/writing/">writing</a> or the <a class="link" href="/resume/">résumé</a>.</p>
+    </div>
+  </div>
+</Base>
